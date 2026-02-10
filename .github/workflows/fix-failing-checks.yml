@@ -7,12 +7,12 @@ on:
   workflow_call:
     inputs:
       profile:
-        description: Optional Warp Agent profile name to use for Warp Agent.
+        description: Optional Oz Agent profile name to use for Oz Agent.
         required: false
         type: string
         default: ''
       model:
-        description: Optional Warp model ID to use for Warp Agent.
+        description: Optional Warp model ID to use for Oz Agent.
         required: false
         type: string
         default: ''
@@ -29,8 +29,8 @@ on:
         type: string
         default: ''
     secrets:
-      WARP_API_KEY:
-        description: Warp API key used by the Warp Agent.
+      OZ_API_KEY:
+        description: Oz API key used by the Oz Agent.
         required: true
 jobs:
   fix_failure:
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     if:
       ${{ github.event.workflow_run.conclusion == 'failure' }} &&
-      !startsWith(github.event.workflow_run.head_branch, 'warp-agent-fix/')
+      !startsWith(github.event.workflow_run.head_branch, 'oz-agent-fix/')
     permissions:
       contents: write
       pull-requests: write
@@ -87,7 +87,7 @@ jobs:
             const runId = '${{ github.event.workflow_run.id }}';
             const summaryFile = `output_summary_${runId}.md`;
 
-            const prompt = `You are an expert software engineer and the Warp Agent.
+            const prompt = `You are an expert software engineer and the Oz Agent.
             You are tasked with fixing a CI failure in the repository '${repoName}' on branch '${branchName}'.
 
             **Context**:
@@ -130,14 +130,14 @@ jobs:
             `;
 
             core.setOutput('prompt', prompt);
-      - name: Run Warp Agent
-        uses: warpdotdev/warp-agent-action@v1
+      - name: Run Oz Agent
+        uses: warpdotdev/oz-agent-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
+          oz_api_key: ${{ secrets.OZ_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}
@@ -154,7 +154,7 @@ jobs:
 
           # Check for changes
           if [[ -z $(git status --porcelain) ]]; then
-            echo "No changes made by Warp Agent."
+            echo "No changes made by Oz Agent."
             exit 0
           fi
 
@@ -170,8 +170,8 @@ jobs:
             echo "Warning: Summary file $SUMMARY_FILE not found."
           fi
 
-          FIX_BRANCH="warp-agent-fix/run-$RUN_ID"
-          git config user.name "Warp Agent"
+          FIX_BRANCH="oz-agent-fix/run-$RUN_ID"
+          git config user.name "Oz Agent"
           git config user.email "agent@warp.dev"
 
           git checkout -b "$FIX_BRANCH"

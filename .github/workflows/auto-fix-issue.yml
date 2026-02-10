@@ -7,12 +7,12 @@ on:
   workflow_call:
     inputs:
       profile:
-        description: Optional Warp Agent profile name to use for Warp Agent.
+        description: Optional Oz Agent profile name to use for Oz Agent.
         required: false
         type: string
         default: ''
       model:
-        description: Optional Warp model ID to use for Warp Agent.
+        description: Optional Warp model ID to use for Oz Agent.
         required: false
         type: string
         default: ''
@@ -29,12 +29,12 @@ on:
         type: string
         default: ''
     secrets:
-      WARP_API_KEY:
-        description: Warp API key used by the Warp Agent.
+      OZ_API_KEY:
+        description: Oz API key used by the Oz Agent.
         required: true
 jobs:
   auto_fix:
-    if: github.event.label.name == 'warp-agent'
+    if: github.event.label.name == 'oz-agent'
     name: Auto Fix Issue
     runs-on: ubuntu-latest
     permissions:
@@ -74,7 +74,7 @@ jobs:
                 -   Optionally, read \`issue_comments.txt\` to understand prior discussion and clarifications.`;
             }
 
-            const prompt = `You are an expert software engineer and the Warp Agent.
+            const prompt = `You are an expert software engineer and the Oz Agent.
             You have been assigned to fix GitHub Issue #${issue.number}.
 
             **Issue Details**:
@@ -92,14 +92,14 @@ jobs:
             4.  **Output**: Do not output the diff. Provide a brief summary of what you changed.
             `;
             core.setOutput('prompt', prompt);
-      - name: Run Warp Agent
-        uses: warpdotdev/warp-agent-action@v1
+      - name: Run Oz Agent
+        uses: warpdotdev/oz-agent-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
+          oz_api_key: ${{ secrets.OZ_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}
@@ -115,14 +115,14 @@ jobs:
 
           # Check for changes
           if [[ -z $(git status --porcelain) ]]; then
-            echo "No changes made by Warp Agent."
+            echo "No changes made by Oz Agent."
             gh issue comment "$ISSUE_NUMBER" --body "I analyzed the issue but couldn't determine a code change to make. \\n\\n**Agent Output:**\\n$AGENT_OUTPUT"
             exit 0
           fi
 
           BRANCH_NAME="fix/issue-$ISSUE_NUMBER"
 
-          git config user.name "Warp Agent"
+          git config user.name "Oz Agent"
           git config user.email "agent@warp.dev"
 
           git checkout -b "$BRANCH_NAME"

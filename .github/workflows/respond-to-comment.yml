@@ -7,12 +7,12 @@ on:
   workflow_call:
     inputs:
       profile:
-        description: Optional Warp Agent profile name to use for Warp Agent.
+        description: Optional Oz Agent profile name to use for Oz Agent.
         required: false
         type: string
         default: ''
       model:
-        description: Optional Warp model ID to use for Warp Agent.
+        description: Optional Warp model ID to use for Oz Agent.
         required: false
         type: string
         default: ''
@@ -29,14 +29,14 @@ on:
         type: string
         default: ''
     secrets:
-      WARP_API_KEY:
-        description: Warp API key used by the Warp Agent.
+      OZ_API_KEY:
+        description: Oz API key used by the Oz Agent.
         required: true
 jobs:
   respond:
     runs-on: ubuntu-latest
     if: |
-      contains(github.event.comment.body,'@warp-agent') &&
+      contains(github.event.comment.body,'@oz-agent') &&
       (
         github.event_name == 'pull_request_review_comment' ||
         (github.event_name == 'issue_comment' && github.event.issue.pull_request)
@@ -115,7 +115,7 @@ jobs:
             const commentBody = context.payload.comment.body;
             const author = context.payload.comment.user.login;
 
-            let prompt = `You are an expert software engineer and the Warp Agent.
+            let prompt = `You are an expert software engineer and the Oz Agent.
             You are responding to a specific request on a Pull Request. Your goal is to implement the requested changes directly in the codebase.
 
             **Context**:
@@ -157,14 +157,14 @@ jobs:
             `;
 
             core.setOutput('prompt', prompt);
-      - name: Run Warp Agent
-        uses: warpdotdev/warp-agent-action@v1
+      - name: Run Oz Agent
+        uses: warpdotdev/oz-agent-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
+          oz_api_key: ${{ secrets.OZ_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           output_format: json
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
@@ -175,12 +175,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "Warp Agent"
+          git config user.name "Oz Agent"
           git config user.email "agent@warp.dev"
 
           if [[ -n $(git status --porcelain) ]]; then
             git add .
-            git commit -m "Warp Agent: Address comment"
+            git commit -m "Oz Agent: Address comment"
             git push
           else
             echo "No changes to commit."

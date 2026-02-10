@@ -7,12 +7,12 @@ on:
   workflow_call:
     inputs:
       profile:
-        description: Optional Warp Agent profile name to use for Warp Agent.
+        description: Optional Oz Agent profile name to use for Oz Agent.
         required: false
         type: string
         default: ''
       model:
-        description: Optional Warp model ID to use for Warp Agent.
+        description: Optional Warp model ID to use for Oz Agent.
         required: false
         type: string
         default: ''
@@ -29,8 +29,8 @@ on:
         type: string
         default: ''
     secrets:
-      WARP_API_KEY:
-        description: Warp API key used by the Warp Agent.
+      OZ_API_KEY:
+        description: Oz API key used by the Oz Agent.
         required: true
       SLACK_WEBHOOK_URL:
         description: Slack webhook URL used to post the daily issue summary.
@@ -90,7 +90,7 @@ jobs:
               issueText += `Summary: ${bodySnippet}\n\n`;
             }
 
-            const prompt = `You are an expert product manager and the Warp Agent.
+            const prompt = `You are an expert product manager and the Oz Agent.
             Your task is to summarize the GitHub issues opened in this repository within the last 24 hours for a daily Slack update.
 
             **Issues List**:
@@ -116,15 +116,15 @@ jobs:
             `;
 
             core.setOutput('prompt', prompt);
-      - name: Run Warp Agent
+      - name: Run Oz Agent
         if: steps.fetch_issues.outputs.has_issues == 'true'
-        uses: warpdotdev/warp-agent-action@v1
+        uses: warpdotdev/oz-agent-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
+          oz_api_key: ${{ secrets.OZ_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}

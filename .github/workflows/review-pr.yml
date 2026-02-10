@@ -7,12 +7,12 @@ on:
   workflow_call:
     inputs:
       profile:
-        description: Optional Warp Agent profile name to use for Warp Agent.
+        description: Optional Oz Agent profile name to use for Oz Agent.
         required: false
         type: string
         default: ''
       model:
-        description: Optional Warp model ID to use for Warp Agent.
+        description: Optional Warp model ID to use for Oz Agent.
         required: false
         type: string
         default: ''
@@ -29,8 +29,8 @@ on:
         type: string
         default: ''
     secrets:
-      WARP_API_KEY:
-        description: Warp API key used by the Warp Agent.
+      OZ_API_KEY:
+        description: Oz API key used by the Oz Agent.
         required: true
 jobs:
   review_pr:
@@ -251,13 +251,13 @@ jobs:
             `;
 
             core.setOutput('prompt', prompt);
-      - name: Run Warp Agent Review
-        uses: warpdotdev/warp-agent-action@v1
+      - name: Run Oz Agent Review
+        uses: warpdotdev/oz-agent-action@v1
         env:
           GH_TOKEN: ${{ github.token }}
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
+          oz_api_key: ${{ secrets.OZ_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}
@@ -393,7 +393,7 @@ jobs:
               if (hasSummary) {
                 payload.body = summary;
               } else {
-                payload.body = 'Automated review by Warp Agent';
+                payload.body = 'Automated review by Oz Agent';
               }
 
               if (comments.length > 0) {
