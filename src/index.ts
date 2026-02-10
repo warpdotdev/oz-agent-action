@@ -113,8 +113,8 @@ async function installOz(channel: string, version: string): Promise<void> {
   await core.group('Installing Oz', async () => {
     const ozDeb = await downloadOzDeb(channel, version)
     // Install the .deb file, and then use apt-get to install any dependencies.
-    await exec.exec('dpkg', ['-i', ozDeb])
-    await exec.exec('apt-get', ['-f', 'install'])
+    await exec.exec('sudo', ['dpkg', '-i', ozDeb])
+    await exec.exec('sudo', ['apt-get', '-f', 'install'])
   })
 }
 

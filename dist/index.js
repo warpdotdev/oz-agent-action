@@ -29913,8 +29913,8 @@ async function installOz(channel, version) {
     await coreExports.group('Installing Oz', async () => {
         const ozDeb = await downloadOzDeb(channel, version);
         // Install the .deb file, and then use apt-get to install any dependencies.
-        await execExports.exec('dpkg', ['-i', ozDeb]);
-        await execExports.exec('apt-get', ['-f', 'install']);
+        await execExports.exec('sudo', ['dpkg', '-i', ozDeb]);
+        await execExports.exec('sudo', ['apt-get', '-f', 'install']);
     });
 }
 // Download the .deb file for the Oz CLI. If the version is `latest`, this will resolve the
