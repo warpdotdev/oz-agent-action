@@ -1,0 +1,58 @@
+name: Oz Agent
+description: Run the Oz agent in a GitHub workflow
+author: Warp Team <dev@warp.dev>
+
+inputs:
+  prompt:
+    description: Prompt for the Oz Agent
+    required: false
+  saved_prompt:
+    description: 'Warp Drive Saved prompt ID for the Oz agent'
+    required: false
+    default: ''
+  model:
+    description: 'Override the base model used by the agent (Warp model ID)'
+    required: false
+    default: ''
+  name:
+    description: 'Name for this agent task'
+    required: false
+    default: ''
+  mcp:
+    description:
+      'MCP configuration in JSON format (or path to a mcp.json file) to start before executing the
+      agent'
+    required: false
+    default: ''
+  cwd:
+    description: 'Current working directory for the Oz agent'
+    required: false
+    default: ''
+  profile:
+    description: 'Oz Agent profile for the Oz agent'
+    required: false
+    default: ''
+  output_format:
+    description: Format for agent output
+    required: true
+    default: text
+  oz_api_key:
+    description: 'Oz API key for the Oz agent'
+    required: false
+    default: ''
+  share:
+    description: Recipients to share the agent's session with in Oz.
+    required: false
+    default: ''
+  oz_channel:
+    description: Oz release channel to use
+    required: true
+    default: stable
+  oz_version:
+    description: Specific Oz version to install
+    required: true
+    default: latest
+
+runs:
+  using: node24
+  main: dist/index.js

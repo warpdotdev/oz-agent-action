@@ -1,0 +1,39 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Formatting and Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        id: setup-node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Dependencies
+        id: install
+        run: npm ci
+
+      - name: Check formatting
+        id: format
+        run: npm run format:check
+
+      - name: Lint
+        id: lint
+        run: npm run lint

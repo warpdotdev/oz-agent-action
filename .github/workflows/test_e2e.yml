@@ -1,0 +1,29 @@
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  run_warp_test:
+    name: Test running the Warp agent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run Warp
+        uses: ./.
+        id: warp
+        with:
+          warp_channel: preview
+          prompt: Say hello
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
+
+      - name: Verify output
+        env:
+          AGENT_OUTPUT: ${{ steps.warp.outputs.agent_output }}
+        run: |
+          if [[ -z "$AGENT_OUTPUT" ]]; then
+            echo "Warp produced no output"
+            exit 1
+          fi

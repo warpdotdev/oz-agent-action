@@ -1,0 +1,60 @@
+{
+  "name": "oz-cli-action",
+  "version": "0.0.1",
+  "main": "index.js",
+  "private": true,
+  "keywords": [
+    "actions"
+  ],
+  "type": "module",
+  "author": "Warp Team <dev@warp.dev>",
+  "license": "MIT",
+  "description": "Run the Oz agent in a GitHub workflow",
+  "homepage": "https://github.com/warpdotdev/oz-agent-action#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/warpdotdev/oz-agent-action.git"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run bundle && npm run gen-workflows",
+    "bundle": "npm run format:write && npm run package",
+    "format:write": "npx prettier --write .",
+    "format:check": "npx prettier --check .",
+    "lint": "npx eslint .",
+    "package": "npx rollup --config rollup.config.js",
+    "act": "npm run package && act --container-architecture linux/amd64 -j run_oz_test -s OZ_API_KEY",
+    "gen-workflows": "node scripts/build-workflows.mjs && npx prettier --write .github/workflows && npx prettier --write consumer-workflows"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/github": "^6.0.1",
+    "@actions/tool-cache": "^2.0.2"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^1.4.0",
+    "@eslint/js": "^9.39.1",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "prettier-eslint": "^16.4.2",
+    "rollup": "^4.53.2",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.47.0",
+    "yaml": "^2.8.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "*"
+  }
+}
