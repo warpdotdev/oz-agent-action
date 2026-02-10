@@ -1,7 +1,7 @@
-# Warp Agent Action
+# Oz Agent Action
 
-This action supports running the Warp Agent in GitHub Actions. It wraps the
-[Warp CLI](https://docs.warp.dev/developers/cli) with:
+This action supports running the Oz Agent in GitHub Actions. It wraps the
+[Oz CLI](https://docs.warp.dev/developers/cli) with:
 
 - Caching for package installation
 - Capturing output for subsequent steps
@@ -9,15 +9,15 @@ This action supports running the Warp Agent in GitHub Actions. It wraps the
 ## Quickstart
 
 To get started, you'll need a
-[Warp API Key](https://docs.warp.dev/developers/cli#api-key-authentication). We recommend storing
-this key as a [secret](https://docs.github.com/en/actions/concepts/security/secrets) in your
-repository or organization.
+[Oz API Key](https://docs.warp.dev/developers/cli#api-key-authentication). We recommend storing this
+key as a [secret](https://docs.github.com/en/actions/concepts/security/secrets) in your repository
+or organization.
 
-Then, add a step to your workflow that runs Warp:
+Then, add a step to your workflow that runs Oz:
 
 ```yaml
-- name: Review code changes in Warp
-  uses: warpdotdev/warp-agent-action@v1
+- name: Review code changes in Oz
+  uses: warpdotdev/oz-agent-action@v1
   with:
     prompt: |
       Review the code changes on this branch:
@@ -34,10 +34,10 @@ Then, add a step to your workflow that runs Warp:
 
 ## Helpful Tips
 
-- Inject relevant context from the GitHub event and previous steps into your Warp prompt via
+- Inject relevant context from the GitHub event and previous steps into your Oz prompt via
   templating.
-- Warp's output is available as `steps.${step_id}.outputs.agent_output`. Use the
-  `output_format: json` option to get machine-readable agent output!
+- Oz's output is available as `steps.${step_id}.outputs.agent_output`. Use the `output_format: json`
+  option to get machine-readable agent output!
 - For debugging, use the `share` option to automatically share the agent's session with your
   teammates. See the
   [Session Sharing](https://docs.warp.dev/knowledge-and-collaboration/session-sharing) documentation
@@ -47,8 +47,8 @@ See the [action definition](./action.yml) for all options.
 
 ## Example Workflows
 
-This repository includes several example workflows in `examples/` that demonstrate how to use the
-Warp Agent Action for common development tasks.
+This repository includes several example workflows in `examples/` that demonstrate how to use the Oz
+Agent Action for common development tasks.
 
 Each scenario is provided in three forms:
 
@@ -77,9 +77,9 @@ _Full Example_: [examples/respond-to-comment.yml](examples/respond-to-comment.ym
 _Consumer Template_:
 [consumer-workflows/respond-to-comment.yml](consumer-workflows/respond-to-comment.yml)
 
-**Usage:** Comment on a PR or Issue with `@warp-agent` (or your configured trigger phrase).
+**Usage:** Comment on a PR or Issue with `@oz-agent` (or your configured trigger phrase).
 
-**Description:** Allows you to interact with the Agent directly in comments (e.g., "@warp-agent fix
+**Description:** Allows you to interact with the Agent directly in comments (e.g., "@oz-agent fix
 this typo").
 
 **Setup:**
@@ -122,7 +122,7 @@ _Full Example_: [examples/auto-fix-issue.yml](examples/auto-fix-issue.yml)
 
 _Consumer Template_: [consumer-workflows/auto-fix-issue.yml](consumer-workflows/auto-fix-issue.yml)
 
-**Usage:** Apply the label `warp-agent` to any GitHub Issue.
+**Usage:** Apply the label `oz-agent` to any GitHub Issue.
 
 **Description:** Triggers when the label is applied, analyzes the issue, and attempts to write code
 to fix it.
@@ -137,7 +137,7 @@ to fix it.
 - If a fix is found: A new Pull Request (`fix/issue-NUMBER`) is created and linked to the issue.
 - If no fix is found: The Agent comments on the issue explaining why.
 
-**When to use:** Delegate bug fixes, small features, or chore tasks to the Warp Agent.
+**When to use:** Delegate bug fixes, small features, or chore tasks to the Oz Agent.
 
 ### Daily Issue Summary
 

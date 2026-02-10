@@ -1,0 +1,121 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # Fetch all history for all tags
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          # Fetch all tags
+          git fetch --tags
+
+          # Get the latest semantic version tag (v*.*.*)
+          LATEST_TAG=$(git tag -l "v*.*.*" | sort -V | tail -n 1)
+
+          # If no semantic version tag exists, start with v1.0.0
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v1.0.0"
+          fi
+
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag: $LATEST_TAG"
+
+      - name: Increment patch version
+        id: increment_version
+        run: |
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+
+          # Remove 'v' prefix and split into components
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+
+          # Increment patch version
+          PATCH=$((PATCH + 1))
+
+          # Create new version
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Create and push tag
+        id: create_tag
+        run: |
+          NEW_VERSION="${{ steps.increment_version.outputs.new_version }}"
+
+          # Remove 'v' prefix and split into components
+          VERSION=${NEW_VERSION#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+          git push origin "$NEW_VERSION"
+
+          # Update major version tag to point to this new release
+          git tag -fa v${MAJOR} -m "Update ${MAJOR} tag"
+          git push origin v${MAJOR} --force
+
+          echo "tag_created=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: generate_notes
+        run: |
+          NEW_VERSION="${{ steps.increment_version.outputs.new_version }}"
+          LATEST_TAG="${{ steps.get_latest_tag.outputs.latest_tag }}"
+
+          # Get commit messages since last tag
+          if [ "$LATEST_TAG" = "v1.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" -n 10)
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s (%h)")
+          fi
+
+          # Create release notes
+          cat > release_notes.md << EOF
+          ## What's Changed
+
+          $COMMITS
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${LATEST_TAG}...${NEW_VERSION}
+          EOF
+
+          echo "Release notes generated"
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const releaseNotes = fs.readFileSync('release_notes.md', 'utf8');
+
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ steps.increment_version.outputs.new_version }}',
+              name: '${{ steps.increment_version.outputs.new_version }}',
+              body: releaseNotes,
+              draft: false,
+              prerelease: false
+            });
