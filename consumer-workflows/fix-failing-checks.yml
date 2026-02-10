@@ -11,7 +11,7 @@
 #   - Analyzes failure logs to determine the cause.
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #   - Update the `workflow_run.workflows` list to match your CI workflow names.
 #
 # Expected Output:
@@ -37,4 +37,4 @@ jobs:
       name: ''
       mcp: ''
     secrets:
-      OZ_API_KEY: ${{ secrets.OZ_API_KEY }}
+      WARP_API_KEY: ${{ secrets.WARP_API_KEY }}

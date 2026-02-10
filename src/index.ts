@@ -22,9 +22,9 @@ async function runAgent(): Promise<void> {
     throw new Error('Either `prompt` or `saved_prompt` must be provided')
   }
 
-  const apiKey = core.getInput('oz_api_key')
+  const apiKey = core.getInput('warp_api_key')
   if (!apiKey) {
-    throw new Error('`oz_api_key` must be provided.')
+    throw new Error('`warp_api_key` must be provided.')
   }
 
   let command: string
@@ -96,7 +96,7 @@ async function runAgent(): Promise<void> {
     execResult = await exec.getExecOutput(command, args, {
       env: {
         ...process.env,
-        OZ_API_KEY: apiKey
+        WARP_API_KEY: apiKey
       }
     })
   } catch (error) {

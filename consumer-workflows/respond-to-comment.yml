@@ -11,7 +11,7 @@
 #   - You can ask questions or request code changes (e.g., "@oz-agent fix this typo").
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #
 # Expected Output:
 #   - The Agent replies to your comment with an answer or confirmation.
@@ -38,4 +38,4 @@ jobs:
       name: ''
       mcp: ''
     secrets:
-      OZ_API_KEY: ${{ secrets.OZ_API_KEY }}
+      WARP_API_KEY: ${{ secrets.WARP_API_KEY }}

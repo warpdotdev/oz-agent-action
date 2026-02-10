@@ -6,7 +6,7 @@
 #   - Analyzes the diff of the PR.
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #   - The Agent needs read access to contents and write access to pull-requests.
 #
 # Expected Output:
@@ -250,7 +250,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          oz_api_key: ${{ secrets.OZ_API_KEY }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
           profile: ${{ vars.WARP_AGENT_PROFILE || '' }}
 
       - name: Post Review

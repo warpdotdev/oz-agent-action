@@ -28,7 +28,7 @@
     "format:check": "npx prettier --check .",
     "lint": "npx eslint .",
     "package": "npx rollup --config rollup.config.js",
-    "act": "npm run package && act --container-architecture linux/amd64 -j run_oz_test -s OZ_API_KEY",
+    "act": "npm run package && act --container-architecture linux/amd64 -j run_oz_test -s WARP_API_KEY",
     "gen-workflows": "node scripts/build-workflows.mjs && npx prettier --write .github/workflows && npx prettier --write consumer-workflows"
   },
   "dependencies": {

@@ -6,7 +6,7 @@
 #   - This workflow will trigger, analyze the issue, and attempt to write code to fix it.
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #   - Ensure the Action has write permissions for contents, issues, and pull-requests.
 #
 # Expected Output:
@@ -93,7 +93,7 @@ jobs:
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          oz_api_key: ${{ secrets.OZ_API_KEY }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
           profile: ${{ vars.WARP_AGENT_PROFILE || '' }}
 
       - name: Create PR and Comment

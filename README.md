@@ -29,7 +29,7 @@ Then, add a step to your workflow that runs Oz:
     # name: "PR review"
     # mcp: |
     #   {"mcpServers": {"github": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}}}}
-    oz_api_key: ${{ secrets.OZ_API_KEY }}
+    warp_api_key: ${{ secrets.WARP_API_KEY }}
 ```
 
 ## Helpful Tips
@@ -64,7 +64,7 @@ Each scenario is provided in three forms:
 1. Pick a scenario below (e.g., Respond to Comment, Auto Fix Issue).
 2. Copy the corresponding file from `consumer-workflows/` into `.github/workflows/` in your
    repository.
-3. Ensure the required secrets (such as `OZ_API_KEY`, and `SLACK_WEBHOOK_URL` where applicable) are
+3. Ensure the required secrets (such as `WARP_API_KEY`, and `SLACK_WEBHOOK_URL` where applicable) are
    defined in your repository and mapped under the `secrets:` block.
 
 Alternatively, advanced users can call the reusable workflows directly from their own workflows via
@@ -84,7 +84,7 @@ this typo").
 
 **Setup:**
 
-- Ensure `OZ_API_KEY` is set in Repository Secrets.
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
 
 **Expected Output:**
 
@@ -105,7 +105,7 @@ _Consumer Template_: [consumer-workflows/review-pr.yml](consumer-workflows/revie
 
 **Setup:**
 
-- Ensure `OZ_API_KEY` is set in Repository Secrets.
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
 - The Agent needs read access to contents and write access to pull-requests.
 
 **Expected Output:**
@@ -129,7 +129,7 @@ to fix it.
 
 **Setup:**
 
-- Ensure `OZ_API_KEY` is set in Repository Secrets.
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
 - Action requires write permissions for contents, issues, and pull-requests.
 
 **Expected Output:**
@@ -152,7 +152,7 @@ _Consumer Template_:
 
 **Setup:**
 
-- Ensure `OZ_API_KEY` is set in Repository Secrets.
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
 - Ensure `SLACK_WEBHOOK_URL` is set in Repository Secrets to receive the report.
 
 **Expected Output:** A Slack message containing a categorized summary of new issues (Bugs, Features,
@@ -174,7 +174,7 @@ a fix.
 
 **Setup:**
 
-- Ensure `OZ_API_KEY` is set in Repository Secrets.
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
 - Update the `workflow_run.workflows` list in the file to match your CI workflow names.
 
 **Expected Output:**
@@ -198,7 +198,7 @@ style), the Agent replies with a code suggestion block containing the fix.
 
 **Setup:**
 
-- Ensure `OZ_API_KEY` is set in Repository Secrets.
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
 - Action requires write permissions for `contents` and `pull-requests`.
 
 **Expected Output:**

@@ -29,7 +29,7 @@ on:
         type: string
         default: ''
     secrets:
-      OZ_API_KEY:
+      WARP_API_KEY:
         description: Oz API key used by the Oz Agent.
         required: true
 jobs:
@@ -120,7 +120,7 @@ jobs:
       - name: Run Oz Agent
         uses: warpdotdev/oz-agent-action@v1
         with:
-          oz_api_key: ${{ secrets.OZ_API_KEY }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           prompt: ${{ steps.prompt.outputs.prompt }}
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}

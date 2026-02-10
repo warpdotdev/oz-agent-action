@@ -6,7 +6,7 @@
 #   - You can ask questions or request code changes (e.g., "@oz-agent fix this typo").
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #
 # Expected Output:
 #   - The Agent replies to your comment with an answer or confirmation.
@@ -159,7 +159,7 @@ jobs:
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          oz_api_key: ${{ secrets.OZ_API_KEY }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
           profile: ${{ vars.WARP_AGENT_PROFILE || '' }}
           output_format: json
 

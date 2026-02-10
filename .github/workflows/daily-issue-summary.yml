@@ -29,7 +29,7 @@ on:
         type: string
         default: ''
     secrets:
-      OZ_API_KEY:
+      WARP_API_KEY:
         description: Oz API key used by the Oz Agent.
         required: true
       SLACK_WEBHOOK_URL:
@@ -124,7 +124,7 @@ jobs:
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
-          oz_api_key: ${{ secrets.OZ_API_KEY }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
           profile: ${{ inputs.profile || vars.WARP_AGENT_PROFILE || '' }}
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}

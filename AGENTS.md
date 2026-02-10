@@ -39,7 +39,7 @@ This repository contains a GitHub Action that runs the Oz Agent.
 To test locally, use the `act` command:
 
 ```sh
-act --container-architecture linux/amd64 -j run_oz_test -s OZ_API_KEY
+act --container-architecture linux/amd64 -j run_oz_test -s WARP_API_KEY
 ```
 
 This runs the e2e test workflow in `./.github/workflows/test_e2e.yaml`.

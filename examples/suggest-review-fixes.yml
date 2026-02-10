@@ -6,7 +6,7 @@
 #   - Reads the review comments and uses the Oz Agent to suggest fixes.
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #
 # Expected Output:
 #   - Inline replies to review comments with code suggestions where applicable.
@@ -110,7 +110,7 @@ jobs:
       - name: Run Oz Agent
         uses: warpdotdev/oz-agent-action@v1
         with:
-          oz_api_key: ${{ secrets.OZ_API_KEY }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
           profile: ${{ vars.WARP_AGENT_PROFILE }}
           prompt: ${{ steps.prompt.outputs.prompt }}
 

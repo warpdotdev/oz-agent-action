@@ -29835,9 +29835,9 @@ async function runAgent() {
     if (!prompt && !savedPrompt) {
         throw new Error('Either `prompt` or `saved_prompt` must be provided');
     }
-    const apiKey = coreExports.getInput('oz_api_key');
+    const apiKey = coreExports.getInput('warp_api_key');
     if (!apiKey) {
-        throw new Error('`oz_api_key` must be provided.');
+        throw new Error('`warp_api_key` must be provided.');
     }
     let command;
     switch (channel) {
@@ -29897,7 +29897,7 @@ async function runAgent() {
         execResult = await execExports.getExecOutput(command, args, {
             env: {
                 ...process$1.env,
-                OZ_API_KEY: apiKey
+                WARP_API_KEY: apiKey
             }
         });
     }

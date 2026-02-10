@@ -36,7 +36,7 @@ inputs:
     description: Format for agent output
     required: true
     default: text
-  oz_api_key:
+  warp_api_key:
     description: 'Oz API key for the Oz agent'
     required: false
     default: ''

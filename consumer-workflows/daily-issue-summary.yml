@@ -11,7 +11,7 @@
 #   - Fetches issues created in the last 24 hours.
 #
 # Setup:
-#   - Ensure OZ_API_KEY is set in Repository Secrets.
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
 #   - Ensure SLACK_WEBHOOK_URL is set in Repository Secrets to receive the report.
 #
 # Expected Output:
@@ -35,5 +35,5 @@ jobs:
       name: ''
       mcp: ''
     secrets:
-      OZ_API_KEY: ${{ secrets.OZ_API_KEY }}
+      WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

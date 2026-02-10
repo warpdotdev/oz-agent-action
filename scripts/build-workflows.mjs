@@ -46,7 +46,7 @@ const scenarios = [
     reusableWorkflow: {
       inputs: defaultReusableWorkflowInputs,
       secrets: {
-        OZ_API_KEY: {
+        WARP_API_KEY: {
           description: 'Oz API key used by the Oz Agent.',
           required: true
         }
@@ -63,7 +63,7 @@ const scenarios = [
     reusableWorkflow: {
       inputs: defaultReusableWorkflowInputs,
       secrets: {
-        OZ_API_KEY: {
+        WARP_API_KEY: {
           description: 'Oz API key used by the Oz Agent.',
           required: true
         }
@@ -80,7 +80,7 @@ const scenarios = [
     reusableWorkflow: {
       inputs: defaultReusableWorkflowInputs,
       secrets: {
-        OZ_API_KEY: {
+        WARP_API_KEY: {
           description: 'Oz API key used by the Oz Agent.',
           required: true
         }
@@ -97,7 +97,7 @@ const scenarios = [
     reusableWorkflow: {
       inputs: defaultReusableWorkflowInputs,
       secrets: {
-        OZ_API_KEY: {
+        WARP_API_KEY: {
           description: 'Oz API key used by the Oz Agent.',
           required: true
         },
@@ -118,7 +118,7 @@ const scenarios = [
     reusableWorkflow: {
       inputs: defaultReusableWorkflowInputs,
       secrets: {
-        OZ_API_KEY: {
+        WARP_API_KEY: {
           description: 'Oz API key used by the Oz Agent.',
           required: true
         }
@@ -135,7 +135,7 @@ const scenarios = [
     reusableWorkflow: {
       inputs: defaultReusableWorkflowInputs,
       secrets: {
-        OZ_API_KEY: {
+        WARP_API_KEY: {
           description: 'Oz API key used by the Oz Agent.',
           required: true
         }
