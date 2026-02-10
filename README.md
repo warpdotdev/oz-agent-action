@@ -64,8 +64,8 @@ Each scenario is provided in three forms:
 1. Pick a scenario below (e.g., Respond to Comment, Auto Fix Issue).
 2. Copy the corresponding file from `consumer-workflows/` into `.github/workflows/` in your
    repository.
-3. Ensure the required secrets (such as `WARP_API_KEY`, and `SLACK_WEBHOOK_URL` where applicable) are
-   defined in your repository and mapped under the `secrets:` block.
+3. Ensure the required secrets (such as `WARP_API_KEY`, and `SLACK_WEBHOOK_URL` where applicable)
+   are defined in your repository and mapped under the `secrets:` block.
 
 Alternatively, advanced users can call the reusable workflows directly from their own workflows via
 `jobs.<id>.uses` and wire `with:` and `secrets:` manually.
