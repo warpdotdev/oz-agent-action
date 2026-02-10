@@ -3,25 +3,26 @@ on:
   push:
     branches:
       - main
+  pull_request:
 
 jobs:
   run_warp_test:
-    name: Test running the Warp agent
+    name: Test running the Oz agent
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Run Warp
+      - name: Run Oz
         uses: ./.
-        id: warp
+        id: oz
         with:
-          warp_channel: preview
+          oz_channel: preview
           prompt: Say hello
           warp_api_key: ${{ secrets.WARP_API_KEY }}
 
       - name: Verify output
         env:
-          AGENT_OUTPUT: ${{ steps.warp.outputs.agent_output }}
+          AGENT_OUTPUT: ${{ steps.oz.outputs.agent_output }}
         run: |
           if [[ -z "$AGENT_OUTPUT" ]]; then
             echo "Warp produced no output"
