@@ -32,6 +32,35 @@ Then, add a step to your workflow that runs Oz:
     warp_api_key: ${{ secrets.WARP_API_KEY }}
 ```
 
+## Using Skills
+
+Skills provide reusable, specialized capabilities for the Oz Agent. You can use skills instead of or
+along with prompts:
+
+```yaml
+- name: Run agent with a skill
+  uses: warpdotdev/oz-agent-action@v1
+  with:
+    skill: 'my-skill'
+    warp_api_key: ${{ secrets.WARP_API_KEY }}
+```
+
+Skill format options:
+
+- `skill_name` - Searches for the skill in your repository's skill directories
+- `repo:skill_name` - Uses a skill from a specific repository
+- `org/repo:skill_name` - Uses a skill from a specific organization's repository
+
+You can combine skills with prompts - the skill provides the base context and the prompt specifies
+the task:
+
+```yaml
+with:
+  skill: 'code-review'
+  prompt: 'Focus on security vulnerabilities in authentication code'
+  warp_api_key: ${{ secrets.WARP_API_KEY }}
+```
+
 ## Helpful Tips
 
 - Inject relevant context from the GitHub event and previous steps into your Oz prompt via

@@ -29829,11 +29829,12 @@ async function runAgent() {
     const channel = coreExports.getInput('oz_channel');
     const prompt = coreExports.getInput('prompt');
     const savedPrompt = coreExports.getInput('saved_prompt');
+    const skill = coreExports.getInput('skill');
     const model = coreExports.getInput('model');
     const name = coreExports.getInput('name');
     const mcp = coreExports.getInput('mcp');
-    if (!prompt && !savedPrompt) {
-        throw new Error('Either `prompt` or `saved_prompt` must be provided');
+    if (!prompt && !savedPrompt && !skill) {
+        throw new Error('Either `prompt`, `saved_prompt`, or `skill` must be provided');
     }
     const apiKey = coreExports.getInput('warp_api_key');
     if (!apiKey) {
@@ -29857,6 +29858,9 @@ async function runAgent() {
     }
     if (savedPrompt) {
         args.push('--saved-prompt', savedPrompt);
+    }
+    if (skill) {
+        args.push('--skill', skill);
     }
     if (model) {
         args.push('--model', model);

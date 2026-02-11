@@ -13,13 +13,14 @@ async function runAgent(): Promise<void> {
   const channel = core.getInput('oz_channel')
   const prompt = core.getInput('prompt')
   const savedPrompt = core.getInput('saved_prompt')
+  const skill = core.getInput('skill')
 
   const model = core.getInput('model')
   const name = core.getInput('name')
   const mcp = core.getInput('mcp')
 
-  if (!prompt && !savedPrompt) {
-    throw new Error('Either `prompt` or `saved_prompt` must be provided')
+  if (!prompt && !savedPrompt && !skill) {
+    throw new Error('Either `prompt`, `saved_prompt`, or `skill` must be provided')
   }
 
   const apiKey = core.getInput('warp_api_key')
@@ -49,6 +50,10 @@ async function runAgent(): Promise<void> {
 
   if (savedPrompt) {
     args.push('--saved-prompt', savedPrompt)
+  }
+
+  if (skill) {
+    args.push('--skill', skill)
   }
 
   if (model) {

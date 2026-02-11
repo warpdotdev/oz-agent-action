@@ -28,3 +28,21 @@ jobs:
             echo "Warp produced no output"
             exit 1
           fi
+
+      - name: Run Oz with skill from repository
+        uses: ./.
+        id: oz-skill
+        with:
+          oz_channel: preview
+          skill: 'test-skill'
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
+
+      - name: Verify skill output
+        env:
+          SKILL_OUTPUT: ${{ steps.oz-skill.outputs.agent_output }}
+        run: |
+          if [[ -z "$SKILL_OUTPUT" ]]; then
+            echo "Warp skill produced no output"
+            exit 1
+          fi
+          echo "Skill output: $SKILL_OUTPUT"
