@@ -10,6 +10,12 @@ inputs:
     description: 'Warp Drive Saved prompt ID for the Oz agent'
     required: false
     default: ''
+  skill:
+    description:
+      'Use a skill as the base prompt for the agent. Format: `skill_name`, `repo:skill_name`, or
+      `org/repo:skill_name`'
+    required: false
+    default: ''
   model:
     description: 'Override the base model used by the agent (Warp model ID)'
     required: false
