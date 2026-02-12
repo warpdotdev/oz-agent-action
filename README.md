@@ -34,8 +34,10 @@ Then, add a step to your workflow that runs Oz:
 
 ## Using Skills
 
-Skills provide reusable, specialized capabilities for the Oz Agent. You can use skills instead of or
-along with prompts:
+Skills provide reusable, specialized capabilities for the Oz Agent. You can find a curated set of skills in
+the [oz-skills](https://github.com/warpdotdev/oz-skills) repository, or create your own.
+
+You can use skills instead of or along with prompts:
 
 ```yaml
 - name: Run agent with a skill

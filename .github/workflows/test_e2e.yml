@@ -45,4 +45,8 @@ jobs:
             echo "Warp skill produced no output"
             exit 1
           fi
-          echo "Skill output: $SKILL_OUTPUT"
+          if [[ "$SKILL_OUTPUT" != *"GitHub Action skill test successful"* ]]; then
+            echo "Skill output did not contain expected message"
+            echo "Skill output: $SKILL_OUTPUT"
+            exit 1
+          fi
