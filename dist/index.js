@@ -1,15 +1,15 @@
 import * as process$1 from 'process';
 import * as path from 'path';
 import path__default from 'path';
-import * as require$$1 from 'fs';
-import require$$1__default from 'fs';
+import * as fs from 'fs';
+import fs__default from 'fs';
 import * as require$$0 from 'os';
 import require$$0__default from 'os';
 import require$$0$1 from 'crypto';
 import require$$2 from 'http';
 import require$$3 from 'https';
 import require$$0$4 from 'net';
-import require$$1$1 from 'tls';
+import require$$1 from 'tls';
 import require$$4 from 'events';
 import require$$0$3 from 'assert';
 import require$$0$2 from 'util';
@@ -18,14 +18,14 @@ import require$$7 from 'buffer';
 import require$$8 from 'querystring';
 import require$$14 from 'stream/web';
 import require$$0$7 from 'node:stream';
-import require$$1$2 from 'node:util';
+import require$$1$1 from 'node:util';
 import require$$0$6 from 'node:events';
 import require$$0$8 from 'worker_threads';
 import require$$2$1 from 'perf_hooks';
 import require$$5 from 'util/types';
 import require$$4$1 from 'async_hooks';
-import require$$1$3 from 'console';
-import require$$1$4 from 'url';
+import require$$1$2 from 'console';
+import require$$1$3 from 'url';
 import require$$3$1 from 'zlib';
 import require$$6 from 'string_decoder';
 import require$$0$9 from 'diagnostics_channel';
@@ -226,7 +226,7 @@ function requireFileCommand () {
 	// We use any as a valid input type
 	/* eslint-disable @typescript-eslint/no-explicit-any */
 	const crypto = __importStar(require$$0$1);
-	const fs = __importStar(require$$1__default);
+	const fs = __importStar(fs__default);
 	const os = __importStar(require$$0__default);
 	const utils_1 = requireUtils$1();
 	function issueFileCommand(command, message) {
@@ -376,7 +376,7 @@ var hasRequiredTunnel$1;
 function requireTunnel$1 () {
 	if (hasRequiredTunnel$1) return tunnel$1;
 	hasRequiredTunnel$1 = 1;
-	var tls = require$$1$1;
+	var tls = require$$1;
 	var http = require$$2;
 	var https = require$$3;
 	var events = require$$4;
@@ -1758,7 +1758,7 @@ function requireSbmh () {
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -1967,7 +1967,7 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 	const ReadableStream = require$$0$7.Readable;
 
 	function PartStream (opts) {
@@ -2013,7 +2013,7 @@ function requireHeaderParser () {
 	hasRequiredHeaderParser = 1;
 
 	const EventEmitter = require$$0$6.EventEmitter;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -2121,7 +2121,7 @@ function requireDicer () {
 	hasRequiredDicer = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const inherits = require$$1$2.inherits;
+	const inherits = require$$1$1.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -2698,7 +2698,7 @@ function requireMultipart () {
 	//     -- this will require modifications to utils.parseParams
 
 	const { Readable } = require$$0$7;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$1;
 
 	const Dicer = requireDicer();
 
@@ -3264,7 +3264,7 @@ function requireMain () {
 	hasRequiredMain = 1;
 
 	const WritableStream = require$$0$7.Writable;
-	const { inherits } = require$$1$2;
+	const { inherits } = require$$1$1;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -8088,7 +8088,7 @@ function requireConnect () {
 	    let socket;
 	    if (protocol === 'https:') {
 	      if (!tls) {
-	        tls = require$$1$1;
+	        tls = require$$1;
 	      }
 	      servername = servername || options.servername || util.getServerName(host) || null;
 
@@ -14112,7 +14112,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = require$$0$5;
-	const { Console } = require$$1$3;
+	const { Console } = require$$1$2;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -14339,7 +14339,7 @@ function requireProxyAgent () {
 	hasRequiredProxyAgent = 1;
 
 	const { kProxy, kClose, kDestroy, kInterceptors } = requireSymbols$4();
-	const { URL } = require$$1$4;
+	const { URL } = require$$1$3;
 	const Agent = requireAgent();
 	const Pool = requirePool();
 	const DispatcherBase = requireDispatcherBase();
@@ -25204,7 +25204,7 @@ function requireSummary () {
 		Object.defineProperty(exports$1, "__esModule", { value: true });
 		exports$1.summary = exports$1.markdownSummary = exports$1.SUMMARY_DOCS_URL = exports$1.SUMMARY_ENV_VAR = void 0;
 		const os_1 = require$$0__default;
-		const fs_1 = require$$1__default;
+		const fs_1 = fs__default;
 		const { access, appendFile, writeFile } = fs_1.promises;
 		exports$1.SUMMARY_ENV_VAR = 'GITHUB_STEP_SUMMARY';
 		exports$1.SUMMARY_DOCS_URL = 'https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary';
@@ -25596,7 +25596,7 @@ function requireIoUtil () {
 		var _a;
 		Object.defineProperty(exports$1, "__esModule", { value: true });
 		exports$1.getCmdPath = exports$1.tryGetExecutablePath = exports$1.isRooted = exports$1.isDirectory = exports$1.exists = exports$1.READONLY = exports$1.UV_FS_O_EXLOCK = exports$1.IS_WINDOWS = exports$1.unlink = exports$1.symlink = exports$1.stat = exports$1.rmdir = exports$1.rm = exports$1.rename = exports$1.readlink = exports$1.readdir = exports$1.open = exports$1.mkdir = exports$1.lstat = exports$1.copyFile = exports$1.chmod = void 0;
-		const fs = __importStar(require$$1__default);
+		const fs = __importStar(fs__default);
 		const path = __importStar(path__default);
 		_a = fs.promises
 		// export const {open} = 'fs'
@@ -28959,7 +28959,7 @@ function requireManifest () {
 		/* eslint @typescript-eslint/no-require-imports: 0 */
 		const os = require$$0__default;
 		const cp = require$$2$2;
-		const fs = require$$1__default;
+		const fs = fs__default;
 		function _findMatch(versionSpec, stable, candidates, archFilter) {
 		    return __awaiter(this, void 0, void 0, function* () {
 		        const platFilter = os.platform();
@@ -29189,7 +29189,7 @@ function requireToolCache () {
 	const core = __importStar(requireCore());
 	const io = __importStar(requireIo());
 	const crypto = __importStar(require$$0$1);
-	const fs = __importStar(require$$1__default);
+	const fs = __importStar(fs__default);
 	const mm = __importStar(requireManifest());
 	const os = __importStar(require$$0__default);
 	const path = __importStar(path__default);
@@ -29824,6 +29824,41 @@ var toolCacheExports = requireToolCache();
 
 var libExports = requireLib();
 
+function parseMcpInput(mcpInput, baseDir) {
+    const trimmed = mcpInput.trim();
+    if (!trimmed) {
+        throw new Error('`mcp` input was provided but is empty');
+    }
+    const isLikelyInlineJson = trimmed.startsWith('{') || trimmed.startsWith('[');
+    if (isLikelyInlineJson) {
+        try {
+            JSON.parse(trimmed);
+        }
+        catch (error) {
+            throw new Error(`Invalid JSON provided via \`mcp\` input. If you intended to pass a file path, make sure it does not start with '{' or '['. Underlying error: ${String(error)}`);
+        }
+        return { type: 'inline-json', json: trimmed };
+    }
+    const mcpPath = path.isAbsolute(trimmed) ? trimmed : path.resolve(baseDir, trimmed);
+    if (!fs.existsSync(mcpPath)) {
+        throw new Error(`MCP config file not found at ${mcpPath}`);
+    }
+    const stats = fs.statSync(mcpPath);
+    if (!stats.isFile()) {
+        throw new Error(`MCP config path is not a file: ${mcpPath}`);
+    }
+    const fileContents = fs.readFileSync(mcpPath, 'utf8').trim();
+    if (!fileContents) {
+        throw new Error(`MCP config file is empty: ${mcpPath}`);
+    }
+    try {
+        JSON.parse(fileContents);
+    }
+    catch (error) {
+        throw new Error(`MCP config file does not contain valid JSON: ${mcpPath}. Underlying error: ${String(error)}`);
+    }
+    return { type: 'file', path: mcpPath, json: fileContents };
+}
 // Run Oz agent.
 async function runAgent() {
     const channel = coreExports.getInput('oz_channel');
@@ -29868,12 +29903,18 @@ async function runAgent() {
     if (name) {
         args.push('--name', name);
     }
-    if (mcp) {
-        args.push('--mcp', mcp);
-    }
     const cwd = coreExports.getInput('cwd');
     if (cwd) {
         args.push('--cwd', cwd);
+    }
+    if (mcp) {
+        const baseDir = process$1.env.GITHUB_WORKSPACE || process$1.cwd();
+        const mcpBaseDir = cwd ? path.resolve(baseDir, cwd) : baseDir;
+        const resolvedMcp = parseMcpInput(mcp, mcpBaseDir);
+        if (resolvedMcp.type === 'file') {
+            coreExports.info(`Loaded MCP config from ${resolvedMcp.path}`);
+        }
+        args.push('--mcp', resolvedMcp.json);
     }
     const profile = coreExports.getInput('profile');
     if (profile) {
@@ -29991,10 +30032,10 @@ async function logOzLogFile(channel) {
     const channelSuffix = channel === 'stable' ? '' : `-${channel}`;
     const logFileName = channel === 'stable' ? 'warp.log' : `warp_${channel}.log`;
     const warpLogPath = path.join(stateDir, `warp-terminal${channelSuffix}`, logFileName);
-    if (require$$1.existsSync(warpLogPath)) {
+    if (fs.existsSync(warpLogPath)) {
         await coreExports.group('Warp Logs', async () => {
             try {
-                const logContents = require$$1.readFileSync(warpLogPath, 'utf8');
+                const logContents = fs.readFileSync(warpLogPath, 'utf8');
                 coreExports.info(logContents);
             }
             catch (error) {

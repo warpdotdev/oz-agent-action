@@ -8,6 +8,62 @@ import * as exec from '@actions/exec'
 import * as tc from '@actions/tool-cache'
 import * as http from '@actions/http-client'
 
+type ResolvedMcpConfig =
+  | {
+      type: 'inline-json'
+      json: string
+    }
+  | {
+      type: 'file'
+      path: string
+      json: string
+    }
+
+function parseMcpInput(mcpInput: string, baseDir: string): ResolvedMcpConfig {
+  const trimmed = mcpInput.trim()
+  if (!trimmed) {
+    throw new Error('`mcp` input was provided but is empty')
+  }
+
+  const isLikelyInlineJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+  if (isLikelyInlineJson) {
+    try {
+      JSON.parse(trimmed)
+    } catch (error) {
+      throw new Error(
+        `Invalid JSON provided via \`mcp\` input. If you intended to pass a file path, make sure it does not start with '{' or '['. Underlying error: ${String(error)}`
+      )
+    }
+
+    return { type: 'inline-json', json: trimmed }
+  }
+
+  const mcpPath = path.isAbsolute(trimmed) ? trimmed : path.resolve(baseDir, trimmed)
+  if (!fs.existsSync(mcpPath)) {
+    throw new Error(`MCP config file not found at ${mcpPath}`)
+  }
+
+  const stats = fs.statSync(mcpPath)
+  if (!stats.isFile()) {
+    throw new Error(`MCP config path is not a file: ${mcpPath}`)
+  }
+
+  const fileContents = fs.readFileSync(mcpPath, 'utf8').trim()
+  if (!fileContents) {
+    throw new Error(`MCP config file is empty: ${mcpPath}`)
+  }
+
+  try {
+    JSON.parse(fileContents)
+  } catch (error) {
+    throw new Error(
+      `MCP config file does not contain valid JSON: ${mcpPath}. Underlying error: ${String(error)}`
+    )
+  }
+
+  return { type: 'file', path: mcpPath, json: fileContents }
+}
+
 // Run Oz agent.
 async function runAgent(): Promise<void> {
   const channel = core.getInput('oz_channel')
@@ -64,14 +120,23 @@ async function runAgent(): Promise<void> {
     args.push('--name', name)
   }
 
-  if (mcp) {
-    args.push('--mcp', mcp)
-  }
-
   const cwd = core.getInput('cwd')
   if (cwd) {
     args.push('--cwd', cwd)
   }
+
+  if (mcp) {
+    const baseDir = process.env.GITHUB_WORKSPACE || process.cwd()
+    const mcpBaseDir = cwd ? path.resolve(baseDir, cwd) : baseDir
+    const resolvedMcp = parseMcpInput(mcp, mcpBaseDir)
+
+    if (resolvedMcp.type === 'file') {
+      core.info(`Loaded MCP config from ${resolvedMcp.path}`)
+    }
+
+    args.push('--mcp', resolvedMcp.json)
+  }
+
   const profile = core.getInput('profile')
   if (profile) {
     args.push('--profile', profile)
