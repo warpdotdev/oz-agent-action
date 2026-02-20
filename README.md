@@ -27,8 +27,16 @@ Then, add a step to your workflow that runs Oz:
     # Optional:
     # model: <warp-model-id>
     # name: "PR review"
+    #
+    # You can provide MCP config either as inline JSON or as a path to a JSON file
+    # (relative to the workspace or `cwd` if set).
+    #
+    # Inline JSON:
     # mcp: |
     #   {"mcpServers": {"github": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}}}}
+    #
+    # File path:
+    # mcp: .github/mcp.json
     warp_api_key: ${{ secrets.WARP_API_KEY }}
 ```
 
