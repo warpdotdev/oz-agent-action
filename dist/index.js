@@ -29990,7 +29990,7 @@ async function logOzLogFile(channel) {
     const stateDir = process$1.env.XDG_STATE_DIR || path.join(require$$0.homedir(), '.local', 'state');
     const channelSuffix = channel === 'stable' ? '' : `-${channel}`;
     const logFileName = channel === 'stable' ? 'warp.log' : `warp_${channel}.log`;
-    const warpLogPath = path.join(stateDir, `warp-terminal${channelSuffix}`, logFileName);
+    const warpLogPath = path.join(stateDir, `warp-terminal${channelSuffix}`, 'oz', logFileName);
     if (require$$1.existsSync(warpLogPath)) {
         await coreExports.group('Warp Logs', async () => {
             try {
