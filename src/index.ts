@@ -197,6 +197,8 @@ async function logOzLogFile(channel: string): Promise<void> {
   const stateDir = process.env.XDG_STATE_DIR || path.join(os.homedir(), '.local', 'state')
   const channelSuffix = channel === 'stable' ? '' : `-${channel}`
   const logFileName = channel === 'stable' ? 'warp.log' : `warp_${channel}.log`
+  // Note: older versions of Oz may write logs to the parent directory (without the 'oz/' subdirectory),
+  // so this path may not exist if the action is run with a pinned older version of Oz.
   const warpLogPath = path.join(stateDir, `warp-terminal${channelSuffix}`, 'oz', logFileName)
 
   if (fs.existsSync(warpLogPath)) {
