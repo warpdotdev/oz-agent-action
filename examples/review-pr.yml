@@ -87,6 +87,7 @@ jobs:
             - Working directory is PR branch.
             - You have access to the full source code, but you should primarily analyze and comment on the diff below
             - **Restrict feedback to code modified in this PR and its immediate context**. Do not comment on untouched files or lines (GitHub will reject these comments). If you must mention issues in untouched code, add them to the summary instead
+            - **CRITICAL: DO NOT run \`gh pr review\`, \`gh pr comment\`, or any \`gh\` command that posts to GitHub. You must NOT submit any GitHub review or comment directly. All output must be written to \`review.json\` only—the Post Review step will handle publishing.**
 
             ## PR Context
 
@@ -179,8 +180,9 @@ jobs:
             ### 7. Final Step
 
             - Create \`review.json\` with your drafted content
-            - Validate JSON with \`jq\`. If this fails, update the \`review.json\` file with the correct JSON. Do not attempt to use \`rm\` 
+            - Validate JSON with \`jq\`. If this fails, update the \`review.json\` file with the correct JSON. Do not attempt to use \`rm\`
             - Ensure line numbers are correct and match the diff
+            - **DO NOT run \`gh pr review\`, \`gh pr comment\`, \`gh api\`, or any other command that posts content to GitHub. Your only output is \`review.json\`. Stop after validating the file.**
 
             ---
 
@@ -238,6 +240,7 @@ jobs:
             - [ ] Comment spans are ≤10 lines (\`line - start_line <= 10\`)
             - [ ] Summary includes issue counts and recommendation
             - [ ] JSON is valid, use \`jq\` to validate
+            - [ ] No \`gh pr review\`, \`gh pr comment\`, or other GitHub-posting commands were run
 
             **Goal**: Provide actionable, high-signal feedback to help the author improve the code. Be direct and specific.
             `;
