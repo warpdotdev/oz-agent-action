@@ -1,4 +1,4 @@
-name: Oz Agent
+name: Run an Oz cloud agent
 description: Run the Oz agent in a GitHub workflow
 author: Warp Team <dev@warp.dev>
 
