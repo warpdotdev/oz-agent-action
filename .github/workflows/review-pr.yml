@@ -74,6 +74,7 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const path = require('path');
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request.number;
 
@@ -84,8 +85,10 @@ jobs:
               pull_number: prNumber,
             });
 
-            // Read the diff
-            const diffContent = fs.readFileSync('pr_diff.txt', 'utf8');
+            // Write PR description to a file. We don't include this or the diff in the prompt to stay within argument length limits.
+            const diffPath = path.resolve('pr_diff.txt');
+            const descriptionPath = path.resolve('pr_description.txt');
+            fs.writeFileSync(descriptionPath, pr.body || 'No description provided.', 'utf8');
 
             const prompt = `You are an expert software engineer and code reviewer.
             Your task is to provide a comprehensive code review focused on the changes introduced in Pull Request #${prNumber}.
@@ -93,25 +96,23 @@ jobs:
             ## System Context
 
             - Working directory is PR branch.
-            - You have access to the full source code, but you should primarily analyze and comment on the diff below
+            - You have access to the full source code, but you should primarily analyze and comment on the diff provided in \`${diffPath}\`
             - **Restrict feedback to code modified in this PR and its immediate context**. Do not comment on untouched files or lines (GitHub will reject these comments). If you must mention issues in untouched code, add them to the summary instead
             - **CRITICAL: DO NOT run \`gh pr review\`, \`gh pr comment\`, or any \`gh\` command that posts to GitHub. You must NOT submit any GitHub review or comment directly. All output must be written to \`review.json\` only—the Post Review step will handle publishing.**
 
             ## PR Context
 
             - **Title**: ${pr.title}
-            - **Description**: ${pr.body || 'No description provided.'}
+            - **Description**: Read \`${descriptionPath}\` for the full PR description.
 
             ## Code Changes (Diff)
+
+            The diff is in \`${diffPath}\`. Read it to review the code changes.
 
             Each line in the diff is annotated with line numbers:
             - \`[OLD:n]\` prefix = deleted line at line n in old file (use side: "LEFT")
             - \`[NEW:n]\` prefix = added line at line n in new file (use side: "RIGHT")  
             - \`[OLD:n,NEW:m]\` prefix = unchanged context line (use side: "RIGHT" with line m)
-
-            \`\`\`
-            ${diffContent}
-            \`\`\`
 
             ## Review Instructions
 
