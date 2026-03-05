@@ -38,10 +38,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Fetch review comments
         uses: actions/github-script@v7
         with:

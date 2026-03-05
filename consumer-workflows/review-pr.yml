@@ -12,7 +12,7 @@
 #
 # Setup:
 #   - Ensure WARP_API_KEY is set in Repository Secrets.
-#   - The Agent needs read access to contents and write access to pull-requests.
+#   - Workflow requires read access to contents and write access to pull-requests.
 #
 # Expected Output:
 #   - Inline comments on the PR diff highlighting potential bugs, security issues, or style improvements.

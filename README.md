@@ -90,6 +90,10 @@ Each scenario is provided in three forms:
   and calls the reusable workflow via `jobs.<id>.uses`. These templates are intended to be copied
   into `.github/workflows/` in your own repository and customized.
 
+Security note: in these examples, the Oz Agent step is intentionally run without direct GitHub
+authentication, and all GitHub write operations are handled in explicit post-processing steps. This
+reduces prompt-injection blast radius while preserving automation.
+
 ### How to use the scenario workflows
 
 1. Pick a scenario below (e.g., Respond to Comment, Auto Fix Issue).
@@ -137,7 +141,7 @@ _Consumer Template_: [consumer-workflows/review-pr.yml](consumer-workflows/revie
 **Setup:**
 
 - Ensure `WARP_API_KEY` is set in Repository Secrets.
-- The Agent needs read access to contents and write access to pull-requests.
+- Workflow requires read access to contents and write access to pull-requests.
 
 **Expected Output:**
 
@@ -230,7 +234,7 @@ style), the Agent replies with a code suggestion block containing the fix.
 **Setup:**
 
 - Ensure `WARP_API_KEY` is set in Repository Secrets.
-- Action requires write permissions for `contents` and `pull-requests`.
+- Workflow requires `contents: read` and `pull-requests: write`.
 
 **Expected Output:**
 
