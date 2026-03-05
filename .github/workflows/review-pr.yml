@@ -38,10 +38,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Checkout PR
         env:
           GH_TOKEN: ${{ github.token }}
@@ -257,8 +258,6 @@ jobs:
             core.setOutput('prompt', prompt);
       - name: Run Oz Agent Review
         uses: warpdotdev/oz-agent-action@v1
-        env:
-          GH_TOKEN: ${{ github.token }}
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
           warp_api_key: ${{ secrets.WARP_API_KEY }}
