@@ -35,6 +35,11 @@ const defaultReusableWorkflowInputs = {
       'Optional MCP configuration in JSON format (or a path to an mcp.json file) to start before executing the agent.',
     required: false,
     default: ''
+  },
+  skill: {
+    description: 'Optional Oz skill identifier to use as the base prompt for the agent.',
+    required: false,
+    default: ''
   }
 }
 
@@ -185,6 +190,10 @@ function buildWorkflowCallSecrets(secretsConfig) {
   return secrets
 }
 
+function quoteGithubExpressionString(value) {
+  return value.replace(/'/g, "''")
+}
+
 function updateOzAgentActionInputs(job, workflowCallInputs) {
   if (!workflowCallInputs || Object.keys(workflowCallInputs).length === 0) return
   if (!job || !Array.isArray(job.steps)) return
@@ -211,6 +220,13 @@ function updateOzAgentActionInputs(job, workflowCallInputs) {
 
     if ('mcp' in workflowCallInputs) {
       step.with.mcp = "${{ inputs.mcp || vars.WARP_AGENT_MCP || '' }}"
+    }
+
+    if ('skill' in workflowCallInputs) {
+      const defaultSkill = typeof step.with.skill === 'string' ? step.with.skill : ''
+      step.with.skill = defaultSkill
+        ? `\${{ inputs.skill || '${quoteGithubExpressionString(defaultSkill)}' }}`
+        : "${{ inputs.skill || '' }}"
     }
   }
 }
@@ -336,11 +352,11 @@ async function generateConsumerTemplate(scenario, exampleYaml) {
 
   const withBlock = {}
   if (scenario.reusableWorkflow?.inputs) {
-    // Show optional inputs in the template so users know they can override them.
-    if ('profile' in scenario.reusableWorkflow.inputs) withBlock.profile = ''
-    if ('model' in scenario.reusableWorkflow.inputs) withBlock.model = ''
-    if ('name' in scenario.reusableWorkflow.inputs) withBlock.name = ''
-    if ('mcp' in scenario.reusableWorkflow.inputs) withBlock.mcp = ''
+    for (const [inputName, inputConfig] of Object.entries(scenario.reusableWorkflow.inputs)) {
+      if (!inputConfig.required) {
+        withBlock[inputName] = ''
+      }
+    }
   }
 
   const secretsBlock = {}
