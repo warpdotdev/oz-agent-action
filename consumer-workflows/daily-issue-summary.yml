@@ -34,6 +34,7 @@ jobs:
       model: ''
       name: ''
       mcp: ''
+      skill: ''
     secrets:
       WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

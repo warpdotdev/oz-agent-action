@@ -28,6 +28,11 @@ on:
         required: false
         type: string
         default: ''
+      skill:
+        description: Optional Oz skill identifier to use as the base prompt for the agent.
+        required: false
+        type: string
+        default: ''
     secrets:
       WARP_API_KEY:
         description: Oz API key used by the Oz Agent.
@@ -170,6 +175,7 @@ jobs:
           model: ${{ inputs.model || vars.WARP_AGENT_MODEL || '' }}
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}
           mcp: ${{ inputs.mcp || vars.WARP_AGENT_MCP || '' }}
+          skill: ${{ inputs.skill || '' }}
       - name: Commit and Push Changes
         if: success()
         env:

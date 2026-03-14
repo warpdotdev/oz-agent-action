@@ -35,5 +35,6 @@ jobs:
       model: ''
       name: ''
       mcp: ''
+      skill: ''
     secrets:
       WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
