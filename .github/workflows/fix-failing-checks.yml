@@ -55,6 +55,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Get Failure Logs
         id: logs
         env:
@@ -137,8 +138,6 @@ jobs:
             core.setOutput('prompt', prompt);
       - name: Run Oz Agent
         uses: warpdotdev/oz-agent-action@v1
-        env:
-          GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
@@ -183,6 +182,7 @@ jobs:
           git checkout -b "$FIX_BRANCH"
           git add .
           git commit -m "Fix failing checks for run $RUN_ID"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           git push origin "$FIX_BRANCH" --force
 
           # Find associated PR

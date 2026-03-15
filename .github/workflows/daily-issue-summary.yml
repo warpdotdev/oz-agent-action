@@ -50,6 +50,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Fetch Issues
         id: fetch_issues
         env:
@@ -124,8 +126,6 @@ jobs:
       - name: Run Oz Agent
         if: steps.fetch_issues.outputs.has_issues == 'true'
         uses: warpdotdev/oz-agent-action@v1
-        env:
-          GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}

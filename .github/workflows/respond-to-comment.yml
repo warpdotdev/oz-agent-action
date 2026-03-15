@@ -54,6 +54,8 @@ jobs:
     steps:
       - name: Checkout Action
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Acknowledge Comment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -159,13 +161,12 @@ jobs:
             6. Format your response in Markdown.
             7. Your output will be posted as a reply to the user.
             8. Do not attempt to stage or commit changes. This happens automatically after you complete your response.
+            9. Do not run \`gh\` commands or call the GitHub API directly. This workflow handles GitHub writes in trusted post-processing steps.
             `;
 
             core.setOutput('prompt', prompt);
       - name: Run Oz Agent
         uses: warpdotdev/oz-agent-action@v1
-        env:
-          GH_TOKEN: ${{ github.token }}
         id: agent
         with:
           prompt: ${{ steps.prompt.outputs.prompt }}
@@ -187,6 +188,7 @@ jobs:
           if [[ -n $(git status --porcelain) ]]; then
             git add .
             git commit -m "Oz Agent: Address comment"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
             git push
           else
             echo "No changes to commit."
