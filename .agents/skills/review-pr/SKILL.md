@@ -14,8 +14,23 @@ Review the current pull request and write the output to `review.json`.
 - The working directory is the PR branch checkout.
 - The workflow provides an annotated diff in `pr_diff.txt`.
 - The workflow provides the PR description in `pr_description.txt`.
+- The workflow provides existing PR comments (if any) in `pr_comments.txt`.
 - Focus on files and lines changed by this PR.
 - Do not post comments or reviews to GitHub directly.
+
+## Existing PR Comments
+
+Before writing your review, read `pr_comments.txt`. Use these comments to:
+
+- Understand design decisions explained by the author or other reviewers.
+- Incorporate context from prior review feedback into your analysis.
+- Avoid repeating points already raised. If an existing comment covers a concern you would raise,
+  skip it. You may add a clarification comment if the existing comment does not fully express your
+  concern.
+- If you disagree with an existing comment, you may note it in the summary but do not leave a
+  duplicate inline comment.
+
+The `pr_comments.txt` file will only exist if there were existing comments on the PR.
 
 ## Review Scope
 

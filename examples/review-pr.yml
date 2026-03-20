@@ -82,11 +82,55 @@ jobs:
             const descriptionPath = path.resolve('pr_description.txt');
             fs.writeFileSync(descriptionPath, pr.body || 'No description provided.', 'utf8');
 
+            // Fetch existing PR comments (both issue-level and inline review comments).
+            const commentsPath = path.resolve('pr_comments.txt');
+            const commentSections = [];
+
+            // 1. PR-level (issue) comments.
+            const issueComments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: prNumber }
+            );
+            if (issueComments.length > 0) {
+              commentSections.push('## PR-level comments\n');
+              for (const c of issueComments) {
+                commentSections.push(`### Comment by @${c.user.login} (${c.created_at})`);
+                commentSections.push(c.body || '');
+                commentSections.push('');
+              }
+            }
+
+            // 2. Inline review comments.
+            const reviewComments = await github.paginate(
+              github.rest.pulls.listReviewComments,
+              { owner, repo, pull_number: prNumber }
+            );
+            if (reviewComments.length > 0) {
+              commentSections.push('## Inline review comments\n');
+              for (const c of reviewComments) {
+                commentSections.push(`### Comment by @${c.user.login} on ${c.path}${c.line ? `:${c.line}` : ''} (${c.created_at})`);
+                if (c.diff_hunk) {
+                  commentSections.push('```diff');
+                  commentSections.push(c.diff_hunk);
+                  commentSections.push('```');
+                }
+                commentSections.push(c.body || '');
+                commentSections.push('');
+              }
+            }
+
+            if (commentSections.length > 0) {
+              fs.writeFileSync(commentsPath, commentSections.join('\n'), 'utf8');
+            } else {
+              fs.writeFileSync(commentsPath, 'No existing comments on this PR.', 'utf8');
+            }
+
             const prompt = `Review Pull Request #${prNumber}.
 
             PR title: ${pr.title}
             PR description: Read \`${descriptionPath}\`
             Annotated diff: Read \`${diffPath}\`
+            Existing PR comments: Read \`${commentsPath}\`
 
             Use the review skill instructions as the base behavior. Apply them to this PR only.`;
 
