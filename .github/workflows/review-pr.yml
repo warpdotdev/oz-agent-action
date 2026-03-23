@@ -303,6 +303,12 @@ jobs:
               console.log('Review posted successfully.');
 
             } catch (error) {
+              if (error.response?.data?.errors) {
+                console.error('GitHub API error details:', JSON.stringify(error.response.data.errors, null, 2));
+              }
+              if (error.response?.data) {
+                console.error('GitHub API response data:', JSON.stringify(error.response.data, null, 2));
+              }
               console.error('Failed to post review:', error);
               core.setFailed(`Failed to post review: ${error.message}`);
             }
