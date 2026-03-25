@@ -38,9 +38,23 @@ The `pr_comments.txt` file will only exist if there were existing comments on th
 - Include style or nit comments only when you can provide a concrete suggestion block.
 - If a concern involves untouched code, mention it in the summary instead of an inline comment.
 
+## Binary Files
+
+Binary files (images, compiled assets, etc.) appear in the diff as:
+
+```
+diff --git a/path/to/file b/path/to/file
+Binary files /dev/null and b/path/to/file differ
+```
+
+They have no line annotations. Comments on binary files must:
+
+- Include only `path` and `body`. Do not include `line`, `start_line`, or `side`.
+- Not include suggestion blocks (there is no source text to replace).
+
 ## Diff Line Annotations
 
-The diff file uses these prefixes:
+The diff file uses these prefixes for text files:
 
 - `[OLD:n]` for deleted lines on the old side. Use `"LEFT"`.
 - `[NEW:n]` for added lines on the new side. Use `"RIGHT"`.
@@ -91,6 +105,10 @@ Create `review.json` with this shape:
       "side": "RIGHT",
       "start_line": 40,
       "body": "⚠️ [IMPORTANT] Short explanation\n\n```suggestion\nreplacement\n```"
+    },
+    {
+      "path": "assets/logo.png",
+      "body": "💡 [SUGGESTION] Consider compressing this image to reduce bundle size."
     }
   ]
 }
@@ -99,9 +117,10 @@ Create `review.json` with this shape:
 Field rules:
 
 - `path` must be relative to the repository root.
-- `line` is required and must target the correct side.
-- `start_line` is optional and only for multi-line ranges.
-- `side` must be `"LEFT"` or `"RIGHT"`.
+- For text files: `line` is required and must target the correct side. `side` must be `"LEFT"` or
+  `"RIGHT"`. `start_line` is optional and only for multi-line ranges.
+- For binary files: `line`, `start_line`, and `side` must be omitted. Only `path` and `body` are
+  allowed.
 
 ## Summary Requirements
 

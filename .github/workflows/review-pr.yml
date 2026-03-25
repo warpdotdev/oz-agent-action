@@ -60,6 +60,7 @@ jobs:
             /^index / { print; next }
             /^---/ { print; next }
             /^\+\+\+/ { print; next }
+            /^Binary files / { print; next }
             /^@@/ {
               # Parse hunk header: @@ -old_start,old_count +new_start,new_count @@
               split($2, old_parts, ",")
@@ -213,7 +214,13 @@ jobs:
               );
               const validPaths = new Set(prFiles.map(f => f.filename));
 
+              // Binary files lack a patch property in the listFiles response.
+              const patchlessPaths = new Set(
+                prFiles.filter(f => !f.patch).map(f => f.filename)
+              );
+
               const comments = [];
+              const fileComments = [];
 
               for (const c of rawComments) {
                 if (!c || typeof c !== 'object') continue;
@@ -230,6 +237,25 @@ jobs:
                   continue;
                 }
 
+                const isBinary = patchlessPaths.has(normalizedPath);
+
+                if (isBinary) {
+                  // Binary files cannot have line-level comments; ignore any line info.
+                  if (c.line !== undefined && c.line !== null) {
+                    console.log(`Ignoring line number on binary file comment: ${normalizedPath}`);
+                  }
+                  if (c.start_line !== undefined && c.start_line !== null) {
+                    console.log(`Ignoring start_line on binary file comment: ${normalizedPath}`);
+                  }
+
+                  fileComments.push({
+                    path: normalizedPath,
+                    body: decodeNewlines(c.body),
+                  });
+                  continue;
+                }
+
+                // Text file: line is required.
                 const line = Number(c.line);
                 if (!Number.isInteger(line) || line <= 0) {
                   console.log('Skipping comment with invalid line:', c);
@@ -276,31 +302,52 @@ jobs:
 
               const hasSummary = summary.length > 0;
 
-              if (!hasSummary && comments.length === 0) {
+              if (!hasSummary && comments.length === 0 && fileComments.length === 0) {
                 console.log('No valid summary or inline comments found. Skipping review posting.');
                 return;
               }
 
-              const payload = {
-                owner,
-                repo,
-                pull_number: prNumber,
-                event: 'COMMENT',
-              };
+              // Post the main review with text-file inline comments.
+              if (hasSummary || comments.length > 0) {
+                const payload = {
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  event: 'COMMENT',
+                };
 
-              if (hasSummary) {
-                payload.body = summary;
-              } else {
-                payload.body = 'Automated review by Oz Agent';
+                if (hasSummary) {
+                  payload.body = summary;
+                } else {
+                  payload.body = 'Automated review by Oz Agent';
+                }
+
+                if (comments.length > 0) {
+                  payload.comments = comments;
+                }
+
+                await github.rest.pulls.createReview(payload);
+                console.log('Review posted successfully.');
               }
 
-              if (comments.length > 0) {
-                payload.comments = comments;
+              // Post binary-file comments separately as file-level review comments.
+              const commitId = context.payload.pull_request.head.sha;
+              for (const bc of fileComments) {
+                try {
+                  await github.rest.pulls.createReviewComment({
+                    owner,
+                    repo,
+                    pull_number: prNumber,
+                    commit_id: commitId,
+                    path: bc.path,
+                    body: bc.body,
+                    subject_type: 'file',
+                  });
+                  console.log(`Posted binary file comment on ${bc.path}`);
+                } catch (commentError) {
+                  console.error(`Failed to post binary file comment on ${bc.path}:`, commentError.message);
+                }
               }
-
-              await github.rest.pulls.createReview(payload);
-
-              console.log('Review posted successfully.');
 
             } catch (error) {
               console.error('Failed to post review:', error);
