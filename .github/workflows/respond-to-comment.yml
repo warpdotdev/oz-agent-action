@@ -201,25 +201,49 @@ jobs:
           script: |
             const raw = process.env.AGENT_OUTPUT || '';
 
-            // Walk JSONL lines and capture the last agent text message, if any.
-            let lastText = '';
+            // Walk JSONL lines and extract structured content.
+            // Priority: last `agent` text > last `agent_reasoning` text.
+            // Never fall back to dumping raw JSONL.
+            let lastAgentText = '';
+            let lastReasoning = '';
+            let runUrl = '';
+            let isJsonl = false;
             for (const line of raw.split('\n')) {
               const trimmed = line.trim();
               if (!trimmed) continue;
               try {
                 const obj = JSON.parse(trimmed);
+                isJsonl = true;
                 if (obj.type === 'agent' && typeof obj.text === 'string') {
-                  lastText = obj.text;
+                  lastAgentText = obj.text;
+                } else if (obj.type === 'agent_reasoning' && typeof obj.text === 'string') {
+                  lastReasoning = obj.text;
+                } else if (obj.type === 'system' && obj.run_url) {
+                  runUrl = obj.run_url;
                 }
               } catch (e) {
                 // Ignore non-JSON lines
               }
             }
 
-            const content = (lastText || raw || '').trim();
+            // Use agent text if available, otherwise fall back to reasoning summary.
+            // For non-JSONL output (e.g. text format), use raw output as-is.
+            let content = '';
+            if (lastAgentText) {
+              content = lastAgentText.trim();
+            } else if (!isJsonl && raw.trim()) {
+              content = raw.trim();
+            } else if (lastReasoning) {
+              content = lastReasoning.trim();
+            }
+
             if (!content) {
               core.info('No agent output to reply with.');
               return;
+            }
+
+            if (runUrl) {
+              content += `\n\n[View full agent run](${runUrl})`;
             }
 
             const body = `@${context.payload.comment.user.login}: ${content}`;
