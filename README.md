@@ -130,20 +130,27 @@ _Full Example_: [examples/review-pr.yml](examples/review-pr.yml)
 
 _Consumer Template_: [consumer-workflows/review-pr.yml](consumer-workflows/review-pr.yml)
 
-**Usage:** Runs automatically when a Pull Request is opened or marked ready for review.
+**Usage:** Runs automatically when a Pull Request is opened, marked ready for review, or updated. It
+can also run through GitHub's native review-request flow when the `oz-agent` GitHub user is
+requested as a reviewer.
 
-**Description:** Analyzes the diff of the PR and provides code review feedback.
+**Description:** Analyzes the diff of the PR and provides code review feedback. The first run
+reviews the full PR diff. Follow-up runs review only the commits added since the last Oz review and
+avoid reposting the full PR overview.
 
 **Setup:**
 
 - Ensure `WARP_API_KEY` is set in Repository Secrets.
 - The Agent needs read access to contents and write access to pull-requests.
+- To request a review from Oz like a person, invite the `oz-agent` GitHub user to private
+  organizations before using GitHub's **Request review** UI.
 
 **Expected Output:**
 
 - Inline comments on the PR diff highlighting potential bugs, security issues, or style
   improvements.
-- A general summary comment if applicable.
+- A general summary comment on the first review if applicable.
+- Incremental follow-up reviews that focus on newly pushed commits.
 
 **When to use:** Get immediate feedback on code changes before human review.
 
