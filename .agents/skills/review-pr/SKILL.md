@@ -24,6 +24,14 @@ Review the current pull request and write the output to `review.json`.
 - Focus on files and lines changed by this PR.
 - Do not post comments or reviews to GitHub directly.
 
+For `synchronize` runs, keep the scoping mechanics internal in the user-facing review summary:
+
+- Describe the substantive code change and resulting findings in natural PR-review language.
+- Do not mention "incremental review", "synchronize", SHA ranges, or `pr_incremental_diff.txt`
+  unless that context materially helps explain a concern.
+- Referring to "this update" or "the latest change" is fine when useful, but avoid repetitive
+  boilerplate.
+
 ## Existing PR Comments
 
 Before writing your review, read `pr_diff.txt`, `pr_comments.txt`, and `pr_incremental_diff.txt`
