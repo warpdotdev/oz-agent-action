@@ -2,7 +2,7 @@
 # Workflow: Auto PR Review
 # ======================================================================================
 # Usage:
-#   - Runs automatically when a Pull Request is opened or marked ready for review.
+#   - Runs automatically when a Pull Request is opened, updated with new commits, or marked ready for review.
 #   - Analyzes the diff of the PR.
 #
 # Setup:
@@ -20,7 +20,7 @@ name: Auto PR Review
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, synchronize, ready_for_review]
 
 jobs:
   review_pr:
@@ -39,27 +39,35 @@ jobs:
         run: |
           gh pr checkout ${{ github.event.pull_request.number }}
           git fetch origin ${{ github.event.pull_request.base.ref }}
-          # Diff only the changes introduced in this PR, relative to the PR's base commit
-          # Add line numbers to each line: OLD_LINE NEW_LINE for context, OLD_LINE for deletions, NEW_LINE for additions
-          git diff ${{ github.event.pull_request.base.sha }}...HEAD | awk '
-            /^diff --git/ { print; next }
-            /^index / { print; next }
-            /^---/ { print; next }
-            /^\+\+\+/ { print; next }
-            /^Binary files / { print; next }
-            /^@@/ {
-              # Parse hunk header: @@ -old_start,old_count +new_start,new_count @@
-              split($2, old_parts, ",")
-              split($3, new_parts, ",")
-              old_line = -old_parts[1]
-              new_line = substr(new_parts[1], 2)
-              print
-              next
-            }
-            /^-/ { printf "[OLD:%d]%s\n", old_line++, $0; next }
-            /^\+/ { printf "[NEW:%d]%s\n", new_line++, $0; next }
-            { printf "[OLD:%d,NEW:%d]%s\n", old_line++, new_line++, $0 }
-          ' > pr_diff.txt
+          annotate_diff() {
+            awk '
+              /^diff --git/ { print; next }
+              /^index / { print; next }
+              /^---/ { print; next }
+              /^\+\+\+/ { print; next }
+              /^Binary files / { print; next }
+              /^@@/ {
+                # Parse hunk header: @@ -old_start,old_count +new_start,new_count @@
+                split($2, old_parts, ",")
+                split($3, new_parts, ",")
+                old_line = -old_parts[1]
+                new_line = substr(new_parts[1], 2)
+                print
+                next
+              }
+              /^-/ { printf "[OLD:%d]%s\n", old_line++, $0; next }
+              /^\+/ { printf "[NEW:%d]%s\n", new_line++, $0; next }
+              { printf "[OLD:%d,NEW:%d]%s\n", old_line++, new_line++, $0 }
+            '
+          }
+
+          # Diff only the changes introduced in this PR, relative to the PR's base commit.
+          # Add line numbers to each line: OLD_LINE NEW_LINE for context, OLD_LINE for deletions, NEW_LINE for additions.
+          git diff ${{ github.event.pull_request.base.sha }}...HEAD | annotate_diff > pr_diff.txt
+
+          if [ "${{ github.event.action }}" = "synchronize" ] && [ -n "${{ github.event.before }}" ] && [ -n "${{ github.event.after }}" ]; then
+            git diff "${{ github.event.before }}" "${{ github.event.after }}" | annotate_diff > pr_incremental_diff.txt
+          fi
 
       - name: Construct Review Prompt
         id: prompt
@@ -78,8 +86,18 @@ jobs:
               pull_number: prNumber,
             });
 
+            const prAction = context.payload.action || 'unknown';
+            const previousReviewSha = context.payload.before || '';
+            const currentReviewSha =
+              context.payload.after || context.payload.pull_request.head.sha || '';
+            const triggerMetadata =
+              prAction === 'synchronize'
+                ? `Pull request action: synchronize\nPrevious PR head SHA: ${previousReviewSha}\nCurrent PR head SHA: ${currentReviewSha}`
+                : `Pull request action: ${prAction}`;
+
             // Write PR description to a file. We don't include this or the diff in the prompt to stay within argument length limits.
             const diffPath = path.resolve('pr_diff.txt');
+            const incrementalDiffPath = path.resolve('pr_incremental_diff.txt');
             const descriptionPath = path.resolve('pr_description.txt');
             fs.writeFileSync(descriptionPath, pr.body || 'No description provided.', 'utf8');
 
@@ -129,9 +147,12 @@ jobs:
             const prompt = `Review Pull Request #${prNumber}.
 
             PR title: ${pr.title}
+            ${triggerMetadata}
             PR description: Read \`${descriptionPath}\`
             Annotated diff: Read \`${diffPath}\`
+            ${prAction === 'synchronize' ? `Incremental diff since the previous PR update, if present: Read \`${incrementalDiffPath}\`` : ''}
             Existing PR comments: Read \`${commentsPath}\`
+            ${prAction === 'synchronize' ? 'On synchronize events, prioritize concerns introduced or materially changed in the incremental diff, using the full annotated PR diff for broader context and valid inline comment locations.' : ''}
 
             Use the review skill instructions as the base behavior. Apply them to this PR only.`;
 

@@ -12,15 +12,22 @@ Review the current pull request and write the output to `review.json`.
 ## Context
 
 - The working directory is the PR branch checkout.
-- The workflow provides an annotated diff in `pr_diff.txt`.
+- The workflow provides the full annotated PR diff in `pr_diff.txt`.
+- On `synchronize` runs, the workflow may also provide the incremental push diff in
+  `pr_incremental_diff.txt`.
 - The workflow provides the PR description in `pr_description.txt`.
 - The workflow provides existing PR comments (if any) in `pr_comments.txt`.
+- The prompt includes the pull request action that triggered the workflow.
+- On `synchronize` runs, use `pr_incremental_diff.txt` to focus on newly introduced or materially
+  changed concerns when that file exists, while using the full PR diff for broader context and valid
+  inline comment locations.
 - Focus on files and lines changed by this PR.
 - Do not post comments or reviews to GitHub directly.
 
 ## Existing PR Comments
 
-Before writing your review, read `pr_comments.txt`. Use these comments to:
+Before writing your review, read `pr_diff.txt`, `pr_comments.txt`, and `pr_incremental_diff.txt`
+when it exists. Use the comments to:
 
 - Understand design decisions explained by the author or other reviewers.
 - Incorporate context from prior review feedback into your analysis.
