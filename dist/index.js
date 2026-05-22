@@ -29824,8 +29824,63 @@ var toolCacheExports = requireToolCache();
 
 var libExports = requireLib();
 
+const MAIN_STARTED_STATE = 'oz_action_main_started';
+const RUN_ID_STATE = 'oz_action_run_id';
+const EXIT_CODE_STATE = 'oz_action_exit_code';
+const RUN_ID_TEXT_PATTERN = /^Run ID:\s*(\S+)\s*$/m;
+function commandForChannel(channel) {
+    switch (channel) {
+        case 'stable':
+            return 'oz';
+        case 'preview':
+            return 'oz-preview';
+        default:
+            throw new Error(`Unsupported channel ${channel}`);
+    }
+}
+function parseRunIdFromOutput(output) {
+    const textMatch = RUN_ID_TEXT_PATTERN.exec(output);
+    if (textMatch?.[1]) {
+        return textMatch[1];
+    }
+    for (const line of output.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            continue;
+        }
+        try {
+            const message = JSON.parse(trimmed);
+            if (message.type === 'system' &&
+                message.event_type === 'run_started' &&
+                typeof message.run_id === 'string' &&
+                message.run_id) {
+                return message.run_id;
+            }
+        }
+        catch {
+            // Ignore non-JSON output lines.
+        }
+    }
+    return undefined;
+}
+function buildReportShutdownArgs(runId, exitCodeState) {
+    const args = ['harness-support', '--run-id', runId, 'report-shutdown'];
+    const trimmedExitCode = exitCodeState.trim();
+    if (trimmedExitCode === '0') {
+        return args;
+    }
+    if (trimmedExitCode) {
+        args.push('--error-category', 'process_exit');
+        args.push('--error-message', `agent exited with status ${trimmedExitCode}`);
+        return args;
+    }
+    args.push('--error-category', 'process_exit');
+    args.push('--error-message', 'agent action ended before recording an exit code');
+    return args;
+}
 // Run Oz agent.
-async function runAgent() {
+async function runAgent(options = {}) {
+    coreExports.saveState(MAIN_STARTED_STATE, 'true');
     const channel = coreExports.getInput('oz_channel');
     const prompt = coreExports.getInput('prompt');
     const savedPrompt = coreExports.getInput('saved_prompt');
@@ -29840,18 +29895,10 @@ async function runAgent() {
     if (!apiKey) {
         throw new Error('`warp_api_key` must be provided.');
     }
-    let command;
-    switch (channel) {
-        case 'stable':
-            command = 'oz';
-            break;
-        case 'preview':
-            command = 'oz-preview';
-            break;
-        default:
-            throw new Error(`Unsupported channel ${channel}`);
+    const command = commandForChannel(channel);
+    if (!options.skipInstall) {
+        await installOz(channel, coreExports.getInput('oz_version'));
     }
-    await installOz(channel, coreExports.getInput('oz_version'));
     const args = ['agent', 'run'];
     if (prompt) {
         args.push('--prompt', prompt);
@@ -29896,12 +29943,25 @@ async function runAgent() {
     if (coreExports.isDebug()) {
         args.push('--debug');
     }
+    let stdout = '';
+    let savedRunId;
     let execResult;
     try {
         execResult = await execExports.getExecOutput(command, args, {
             env: {
                 ...process$1.env,
                 WARP_API_KEY: apiKey
+            },
+            ignoreReturnCode: true,
+            listeners: {
+                stdout: (data) => {
+                    stdout += data.toString('utf8');
+                    const runId = parseRunIdFromOutput(stdout);
+                    if (runId && runId !== savedRunId) {
+                        savedRunId = runId;
+                        coreExports.saveState(RUN_ID_STATE, runId);
+                    }
+                }
             }
         });
     }
@@ -29910,7 +29970,57 @@ async function runAgent() {
         await logOzLogFile(channel);
         throw error;
     }
+    coreExports.saveState(EXIT_CODE_STATE, String(execResult.exitCode));
+    if (execResult.exitCode !== 0) {
+        await logOzLogFile(channel);
+        throw new Error(`The process '${command}' failed with exit code ${execResult.exitCode}`);
+    }
     coreExports.setOutput('agent_output', execResult.stdout);
+}
+async function reportShutdown() {
+    const runId = coreExports.getState(RUN_ID_STATE);
+    if (!runId) {
+        coreExports.info('No Oz run ID was captured; skipping shutdown report.');
+        return;
+    }
+    const apiKey = coreExports.getInput('warp_api_key');
+    if (!apiKey) {
+        coreExports.warning('`warp_api_key` is unavailable; skipping shutdown report.');
+        return;
+    }
+    const channel = coreExports.getInput('oz_channel');
+    let command;
+    try {
+        command = commandForChannel(channel);
+    }
+    catch (error) {
+        coreExports.warning(error instanceof Error ? error.message : String(error));
+        return;
+    }
+    const args = buildReportShutdownArgs(runId, coreExports.getState(EXIT_CODE_STATE));
+    const result = await execExports.getExecOutput(command, args, {
+        env: {
+            ...process$1.env,
+            WARP_API_KEY: apiKey
+        },
+        ignoreReturnCode: true
+    });
+    if (result.exitCode === 0) {
+        coreExports.info(`Reported shutdown for ${runId}`);
+    }
+    else {
+        coreExports.warning(`Error reporting shutdown for ${runId}`);
+    }
+}
+async function run() {
+    // When the main process runs, it saves a marker to the GHA state.
+    // If this marker is set, we're running the post-action cleanup.
+    if (coreExports.getState(MAIN_STARTED_STATE)) {
+        await reportShutdown();
+    }
+    else {
+        await runAgent();
+    }
 }
 // Install the Oz CLI, using the specified channel and version.
 async function installOz(channel, version) {
@@ -30008,15 +30118,19 @@ async function logOzLogFile(channel) {
         coreExports.warning(`warp.log not found at ${warpLogPath}`);
     }
 }
-try {
-    await runAgent();
-}
-catch (error) {
-    if (error instanceof Error) {
-        coreExports.setFailed(error.message);
+if (!process$1.env.VITEST) {
+    try {
+        await run();
     }
-    else {
-        coreExports.setFailed(String(error));
+    catch (error) {
+        if (error instanceof Error) {
+            coreExports.setFailed(error.message);
+        }
+        else {
+            coreExports.setFailed(String(error));
+        }
     }
 }
+
+export { EXIT_CODE_STATE, MAIN_STARTED_STATE, RUN_ID_STATE, buildReportShutdownArgs, parseRunIdFromOutput, reportShutdown, run, runAgent };
 //# sourceMappingURL=index.js.map

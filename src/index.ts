@@ -8,8 +8,83 @@ import * as exec from '@actions/exec'
 import * as tc from '@actions/tool-cache'
 import * as http from '@actions/http-client'
 
+export const MAIN_STARTED_STATE = 'oz_action_main_started'
+export const RUN_ID_STATE = 'oz_action_run_id'
+export const EXIT_CODE_STATE = 'oz_action_exit_code'
+
+const RUN_ID_TEXT_PATTERN = /^Run ID:\s*(\S+)\s*$/m
+
+function commandForChannel(channel: string): string {
+  switch (channel) {
+    case 'stable':
+      return 'oz'
+    case 'preview':
+      return 'oz-preview'
+    default:
+      throw new Error(`Unsupported channel ${channel}`)
+  }
+}
+
+export function parseRunIdFromOutput(output: string): string | undefined {
+  const textMatch = RUN_ID_TEXT_PATTERN.exec(output)
+  if (textMatch?.[1]) {
+    return textMatch[1]
+  }
+
+  for (const line of output.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      continue
+    }
+
+    try {
+      const message = JSON.parse(trimmed) as {
+        type?: unknown
+        event_type?: unknown
+        run_id?: unknown
+      }
+      if (
+        message.type === 'system' &&
+        message.event_type === 'run_started' &&
+        typeof message.run_id === 'string' &&
+        message.run_id
+      ) {
+        return message.run_id
+      }
+    } catch {
+      // Ignore non-JSON output lines.
+    }
+  }
+
+  return undefined
+}
+
+export function buildReportShutdownArgs(runId: string, exitCodeState: string): string[] {
+  const args = ['harness-support', '--run-id', runId, 'report-shutdown']
+  const trimmedExitCode = exitCodeState.trim()
+
+  if (trimmedExitCode === '0') {
+    return args
+  }
+
+  if (trimmedExitCode) {
+    args.push('--error-category', 'process_exit')
+    args.push('--error-message', `agent exited with status ${trimmedExitCode}`)
+    return args
+  }
+
+  args.push('--error-category', 'process_exit')
+  args.push('--error-message', 'agent action ended before recording an exit code')
+  return args
+}
+
+interface RunAgentOptions {
+  skipInstall?: boolean
+}
+
 // Run Oz agent.
-async function runAgent(): Promise<void> {
+export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
+  core.saveState(MAIN_STARTED_STATE, 'true')
   const channel = core.getInput('oz_channel')
   const prompt = core.getInput('prompt')
   const savedPrompt = core.getInput('saved_prompt')
@@ -28,19 +103,11 @@ async function runAgent(): Promise<void> {
     throw new Error('`warp_api_key` must be provided.')
   }
 
-  let command: string
-  switch (channel) {
-    case 'stable':
-      command = 'oz'
-      break
-    case 'preview':
-      command = 'oz-preview'
-      break
-    default:
-      throw new Error(`Unsupported channel ${channel}`)
-  }
+  const command = commandForChannel(channel)
 
-  await installOz(channel, core.getInput('oz_version'))
+  if (!options.skipInstall) {
+    await installOz(channel, core.getInput('oz_version'))
+  }
 
   const args = ['agent', 'run']
 
@@ -96,12 +163,25 @@ async function runAgent(): Promise<void> {
     args.push('--debug')
   }
 
+  let stdout = ''
+  let savedRunId: string | undefined
   let execResult
   try {
     execResult = await exec.getExecOutput(command, args, {
       env: {
         ...process.env,
         WARP_API_KEY: apiKey
+      },
+      ignoreReturnCode: true,
+      listeners: {
+        stdout: (data: Buffer) => {
+          stdout += data.toString('utf8')
+          const runId = parseRunIdFromOutput(stdout)
+          if (runId && runId !== savedRunId) {
+            savedRunId = runId
+            core.saveState(RUN_ID_STATE, runId)
+          }
+        }
       }
     })
   } catch (error) {
@@ -110,7 +190,62 @@ async function runAgent(): Promise<void> {
     throw error
   }
 
+  core.saveState(EXIT_CODE_STATE, String(execResult.exitCode))
+
+  if (execResult.exitCode !== 0) {
+    await logOzLogFile(channel)
+    throw new Error(`The process '${command}' failed with exit code ${execResult.exitCode}`)
+  }
+
   core.setOutput('agent_output', execResult.stdout)
+}
+
+export async function reportShutdown(): Promise<void> {
+  const runId = core.getState(RUN_ID_STATE)
+  if (!runId) {
+    core.info('No Oz run ID was captured; skipping shutdown report.')
+    return
+  }
+
+  const apiKey = core.getInput('warp_api_key')
+  if (!apiKey) {
+    core.warning('`warp_api_key` is unavailable; skipping shutdown report.')
+    return
+  }
+
+  const channel = core.getInput('oz_channel')
+  let command: string
+  try {
+    command = commandForChannel(channel)
+  } catch (error) {
+    core.warning(error instanceof Error ? error.message : String(error))
+    return
+  }
+
+  const args = buildReportShutdownArgs(runId, core.getState(EXIT_CODE_STATE))
+  const result = await exec.getExecOutput(command, args, {
+    env: {
+      ...process.env,
+      WARP_API_KEY: apiKey
+    },
+    ignoreReturnCode: true
+  })
+
+  if (result.exitCode === 0) {
+    core.info(`Reported shutdown for ${runId}`)
+  } else {
+    core.warning(`Error reporting shutdown for ${runId}`)
+  }
+}
+
+export async function run(): Promise<void> {
+  // When the main process runs, it saves a marker to the GHA state.
+  // If this marker is set, we're running the post-action cleanup.
+  if (core.getState(MAIN_STARTED_STATE)) {
+    await reportShutdown()
+  } else {
+    await runAgent()
+  }
 }
 
 // Install the Oz CLI, using the specified channel and version.
@@ -215,12 +350,14 @@ async function logOzLogFile(channel: string): Promise<void> {
   }
 }
 
-try {
-  await runAgent()
-} catch (error) {
-  if (error instanceof Error) {
-    core.setFailed(error.message)
-  } else {
-    core.setFailed(String(error))
+if (!process.env.VITEST) {
+  try {
+    await run()
+  } catch (error) {
+    if (error instanceof Error) {
+      core.setFailed(error.message)
+    } else {
+      core.setFailed(String(error))
+    }
   }
 }
