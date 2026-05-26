@@ -7,7 +7,7 @@
 # Workflow: Auto PR Review
 # ======================================================================================
 # Usage:
-#   - Runs automatically when a Pull Request is opened, updated with new commits, or marked ready for review.
+#   - Runs automatically when a Pull Request is opened or marked ready for review.
 #   - Analyzes the diff of the PR.
 #
 # Setup:
@@ -26,8 +26,10 @@ on:
   pull_request:
     types:
       - opened
-      - synchronize
       - ready_for_review
+  issue_comment:
+    types:
+      - created
 jobs:
   review_pr:
     uses: warpdotdev/oz-agent-action/.github/workflows/review-pr.yml@v1

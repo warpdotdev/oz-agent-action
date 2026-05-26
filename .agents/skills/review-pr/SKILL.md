@@ -12,30 +12,20 @@ Review the current pull request and write the output to `review.json`.
 ## Context
 
 - The working directory is the PR branch checkout.
-- The workflow provides the full annotated PR diff in `pr_diff.txt`.
-- On `synchronize` runs, the workflow may also provide the incremental push diff in
-  `pr_incremental_diff.txt`.
+- The workflow provides an annotated diff in `pr_diff.txt`.
 - The workflow provides the PR description in `pr_description.txt`.
 - The workflow provides existing PR comments (if any) in `pr_comments.txt`.
-- The prompt includes the pull request action that triggered the workflow.
-- On `synchronize` runs, use `pr_incremental_diff.txt` to focus on newly introduced or materially
-  changed concerns when that file exists, while using the full PR diff for broader context and valid
-  inline comment locations.
+- On re-review runs, the workflow may also provide `pr_incremental_diff.txt`, containing changes
+  since the most recent Oz review.
+- When `pr_incremental_diff.txt` exists, use it to prioritize newly introduced or materially changed
+  concerns, while using `pr_diff.txt` for valid current inline comment locations.
 - Focus on files and lines changed by this PR.
 - Do not post comments or reviews to GitHub directly.
 
-For `synchronize` runs, keep the scoping mechanics internal in the user-facing review summary:
-
-- Describe the substantive code change and resulting findings in natural PR-review language.
-- Do not mention "incremental review", "synchronize", SHA ranges, or `pr_incremental_diff.txt`
-  unless that context materially helps explain a concern.
-- Referring to "this update" or "the latest change" is fine when useful, but avoid repetitive
-  boilerplate.
-
 ## Existing PR Comments
 
-Before writing your review, read `pr_diff.txt`, `pr_comments.txt`, and `pr_incremental_diff.txt`
-when it exists. Use the comments to:
+Before writing your review, read `pr_comments.txt` and `pr_incremental_diff.txt` when it exists. Use
+these comments to:
 
 - Understand design decisions explained by the author or other reviewers.
 - Incorporate context from prior review feedback into your analysis.

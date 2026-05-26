@@ -2,7 +2,7 @@
 # Workflow: Auto PR Review
 # ======================================================================================
 # Usage:
-#   - Runs automatically when a Pull Request is opened, updated with new commits, or marked ready for review.
+#   - Runs automatically when a Pull Request is opened or marked ready for review.
 #   - Analyzes the diff of the PR.
 #
 # Setup:
@@ -20,10 +20,20 @@ name: Auto PR Review
 
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review]
+    types: [opened, ready_for_review]
+  issue_comment:
+    types: [created]
 
 jobs:
   review_pr:
+    if: |
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        github.event.comment.body == '/oz-review' &&
+        github.actor != 'github-actions[bot]'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,13 +42,55 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+      - name: Resolve Review Context
+        id: review_context
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const isReReview = context.eventName === 'issue_comment';
+            const prNumber = isReReview
+              ? context.payload.issue.number
+              : context.payload.pull_request.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            let previousReviewSha = '';
+            if (isReReview) {
+              const reviews = await github.paginate(
+                github.rest.pulls.listReviews,
+                { owner, repo, pull_number: prNumber }
+              );
+              const previousOzReview = [...reviews].reverse().find(
+                (review) =>
+                  typeof review.body === 'string' &&
+                  review.body.includes('<!-- oz-agent-review -->') &&
+                  typeof review.commit_id === 'string' &&
+                  review.commit_id.length > 0
+              );
+              previousReviewSha = previousOzReview?.commit_id || '';
+            }
+
+            core.setOutput('pr_number', String(prNumber));
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('base_sha', pr.base.sha);
+            core.setOutput('is_rereview', String(isReReview));
+            core.setOutput('previous_review_sha', previousReviewSha);
 
       - name: Checkout PR
+        id: checkout_pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr checkout ${{ github.event.pull_request.number }}
-          git fetch origin ${{ github.event.pull_request.base.ref }}
+          gh pr checkout "${{ steps.review_context.outputs.pr_number }}"
+          git fetch origin "${{ steps.review_context.outputs.base_ref }}"
+          reviewed_head_sha="$(git rev-parse HEAD)"
+          echo "reviewed_head_sha=$reviewed_head_sha" >> "$GITHUB_OUTPUT"
+          # Diff only the changes introduced in this PR, relative to the PR's base commit
+          # Add line numbers to each line: OLD_LINE NEW_LINE for context, OLD_LINE for deletions, NEW_LINE for additions
           annotate_diff() {
             awk '
               /^diff --git/ { print; next }
@@ -61,12 +113,18 @@ jobs:
             '
           }
 
-          # Diff only the changes introduced in this PR, relative to the PR's base commit.
-          # Add line numbers to each line: OLD_LINE NEW_LINE for context, OLD_LINE for deletions, NEW_LINE for additions.
-          git diff ${{ github.event.pull_request.base.sha }}...HEAD | annotate_diff > pr_diff.txt
+          git diff "${{ steps.review_context.outputs.base_sha }}...$reviewed_head_sha" |
+            annotate_diff > pr_diff.txt
 
-          if [ "${{ github.event.action }}" = "synchronize" ] && [ -n "${{ github.event.before }}" ] && [ -n "${{ github.event.after }}" ]; then
-            git diff "${{ github.event.before }}" "${{ github.event.after }}" | annotate_diff > pr_incremental_diff.txt
+          previous_review_sha="${{ steps.review_context.outputs.previous_review_sha }}"
+          if [ "${{ steps.review_context.outputs.is_rereview }}" = "true" ] &&
+            [ -n "$previous_review_sha" ] &&
+            [ "$previous_review_sha" != "$reviewed_head_sha" ]; then
+            git fetch --no-tags origin "$previous_review_sha" || true
+            if git cat-file -e "${previous_review_sha}^{commit}" 2>/dev/null; then
+              git diff "$previous_review_sha" "$reviewed_head_sha" |
+                annotate_diff > pr_incremental_diff.txt
+            fi
           fi
 
       - name: Construct Review Prompt
@@ -77,7 +135,7 @@ jobs:
             const fs = require('fs');
             const path = require('path');
             const { owner, repo } = context.repo;
-            const prNumber = context.payload.pull_request.number;
+            const prNumber = Number('${{ steps.review_context.outputs.pr_number }}');
 
             // Fetch PR details
             const { data: pr } = await github.rest.pulls.get({
@@ -86,20 +144,15 @@ jobs:
               pull_number: prNumber,
             });
 
-            const prAction = context.payload.action || 'unknown';
-            const previousReviewSha = context.payload.before || '';
-            const currentReviewSha =
-              context.payload.after || context.payload.pull_request.head.sha || '';
-            const triggerMetadata =
-              prAction === 'synchronize'
-                ? `Pull request action: synchronize\nPrevious PR head SHA: ${previousReviewSha}\nCurrent PR head SHA: ${currentReviewSha}`
-                : `Pull request action: ${prAction}`;
-
             // Write PR description to a file. We don't include this or the diff in the prompt to stay within argument length limits.
             const diffPath = path.resolve('pr_diff.txt');
             const incrementalDiffPath = path.resolve('pr_incremental_diff.txt');
             const descriptionPath = path.resolve('pr_description.txt');
             fs.writeFileSync(descriptionPath, pr.body || 'No description provided.', 'utf8');
+            const incrementalReviewContext = fs.existsSync(incrementalDiffPath)
+              ? `Changes since the most recent Oz review: Read \`${incrementalDiffPath}\`
+            For this re-review, prioritize new or materially changed concerns from that diff, while using the full annotated PR diff for valid current inline comment locations.`
+              : '';
 
             // Fetch existing PR comments (both issue-level and inline review comments).
             const commentsPath = path.resolve('pr_comments.txt');
@@ -147,12 +200,10 @@ jobs:
             const prompt = `Review Pull Request #${prNumber}.
 
             PR title: ${pr.title}
-            ${triggerMetadata}
             PR description: Read \`${descriptionPath}\`
             Annotated diff: Read \`${diffPath}\`
-            ${prAction === 'synchronize' ? `Incremental diff since the previous PR update, if present: Read \`${incrementalDiffPath}\`` : ''}
             Existing PR comments: Read \`${commentsPath}\`
-            ${prAction === 'synchronize' ? 'On synchronize events, prioritize concerns introduced or materially changed in the incremental diff, using the full annotated PR diff for broader context and valid inline comment locations.' : ''}
+            ${incrementalReviewContext}
 
             Use the review skill instructions as the base behavior. Apply them to this PR only.`;
 
@@ -175,7 +226,9 @@ jobs:
           script: |
             const fs = require('fs');
             const { owner, repo } = context.repo;
-            const prNumber = context.payload.pull_request.number;
+            const prNumber = Number('${{ steps.review_context.outputs.pr_number }}');
+            const reviewedHeadSha = '${{ steps.checkout_pr.outputs.reviewed_head_sha }}';
+            const reviewMarker = '<!-- oz-agent-review -->';
 
             try {
               if (!fs.existsSync('review.json')) {
@@ -315,19 +368,15 @@ jobs:
               }
 
               // Post the main review with text-file inline comments.
-              if (hasSummary || comments.length > 0) {
+              if (hasSummary || comments.length > 0 || fileComments.length > 0) {
                 const payload = {
                   owner,
                   repo,
                   pull_number: prNumber,
+                  commit_id: reviewedHeadSha,
                   event: 'COMMENT',
+                  body: `${hasSummary ? summary : 'Automated review by Oz Agent'}\n\n${reviewMarker}`,
                 };
-
-                if (hasSummary) {
-                  payload.body = summary;
-                } else {
-                  payload.body = 'Automated review by Oz Agent';
-                }
 
                 if (comments.length > 0) {
                   payload.comments = comments;
@@ -338,14 +387,13 @@ jobs:
               }
 
               // Post binary-file comments separately as file-level review comments.
-              const commitId = context.payload.pull_request.head.sha;
               for (const bc of fileComments) {
                 try {
                   await github.rest.pulls.createReviewComment({
                     owner,
                     repo,
                     pull_number: prNumber,
-                    commit_id: commitId,
+                    commit_id: reviewedHeadSha,
                     path: bc.path,
                     body: bc.body,
                     subject_type: 'file',
