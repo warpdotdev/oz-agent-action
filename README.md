@@ -130,7 +130,7 @@ _Full Example_: [examples/review-pr.yml](examples/review-pr.yml)
 
 _Consumer Template_: [consumer-workflows/review-pr.yml](consumer-workflows/review-pr.yml)
 
-**Usage:** Runs automatically when a Pull Request is opened or marked ready for review.
+**Usage:** Runs automatically when a draft Pull Request is marked ready for review.
 
 **Description:** Analyzes the diff of the PR and provides code review feedback.
 
