@@ -29,7 +29,8 @@
     "lint": "npx eslint .",
     "package": "npx rollup --config rollup.config.js",
     "act": "npm run package && act --container-architecture linux/amd64 -j run_oz_test -s WARP_API_KEY",
-    "gen-workflows": "node scripts/build-workflows.mjs && npx prettier --write .github/workflows && npx prettier --write consumer-workflows"
+    "gen-workflows": "node scripts/build-workflows.mjs && npx prettier --write .github/workflows && npx prettier --write consumer-workflows",
+    "test": "vitest run"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",
@@ -52,6 +53,7 @@
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.47.0",
+    "vitest": "^4.1.7",
     "yaml": "^2.8.1"
   },
   "optionalDependencies": {
