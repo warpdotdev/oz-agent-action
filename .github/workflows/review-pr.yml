@@ -380,24 +380,21 @@ jobs:
               }
 
               // Post the main review with text-file inline comments.
-              if (hasSummary || comments.length > 0 || fileComments.length > 0) {
-                const payload = {
-                  owner,
-                  repo,
-                  pull_number: prNumber,
-                  commit_id: reviewedHeadSha,
-                  event: 'COMMENT',
-                  body: `${hasSummary ? summary : 'Automated review by Oz Agent'}\n\n${reviewMarker}`,
-                };
+              const payload = {
+                owner,
+                repo,
+                pull_number: prNumber,
+                commit_id: reviewedHeadSha,
+                event: 'COMMENT',
+                body: `${hasSummary ? summary : 'Automated review by Oz Agent'}\n\n${reviewMarker}`,
+              };
 
-                if (comments.length > 0) {
-                  payload.comments = comments;
-                }
-
-                await github.rest.pulls.createReview(payload);
-                console.log('Review posted successfully.');
+              if (comments.length > 0) {
+                payload.comments = comments;
               }
 
+              await github.rest.pulls.createReview(payload);
+              console.log('Review posted successfully.');
               // Post binary-file comments separately as file-level review comments.
               for (const bc of fileComments) {
                 try {
