@@ -7,7 +7,9 @@
 # Workflow: Auto PR Review
 # ======================================================================================
 # Usage:
-#   - Runs automatically when a Pull Request is marked ready for review.
+#   - Runs automatically when a Pull Request first becomes reviewable:
+#     - A non-draft Pull Request is opened.
+#     - An existing draft Pull Request is marked ready for review.
 #   - Analyzes the diff of the PR.
 #
 # Setup:
@@ -25,6 +27,7 @@ name: Auto PR Review
 on:
   pull_request:
     types:
+      - opened
       - ready_for_review
   issue_comment:
     types:

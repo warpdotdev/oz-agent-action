@@ -2,7 +2,9 @@
 # Workflow: Auto PR Review
 # ======================================================================================
 # Usage:
-#   - Runs automatically when a Pull Request is marked ready for review.
+#   - Runs automatically when a Pull Request first becomes reviewable:
+#     - A non-draft Pull Request is opened.
+#     - An existing draft Pull Request is marked ready for review.
 #   - Analyzes the diff of the PR.
 #
 # Setup:
@@ -20,14 +22,14 @@ name: Auto PR Review
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [opened, ready_for_review]
   issue_comment:
     types: [created]
 
 jobs:
   review_pr:
     if: |
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
       (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
