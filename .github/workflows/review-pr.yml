@@ -39,6 +39,9 @@ on:
         required: true
 jobs:
   review_pr:
+    if:
+      github.event.action != 'review_requested' || github.event.requested_reviewer.login ==
+      'oz-agent'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,15 +50,99 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Checkout PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh pr checkout ${{ github.event.pull_request.number }}
           git fetch origin ${{ github.event.pull_request.base.ref }}
+      - name: Determine Review Scope
+        id: scope
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const headSha = pr.head.sha;
+            const baseSha = pr.base.sha;
+            const { execSync } = require('child_process');
+
+            const reviews = await github.paginate(
+              github.rest.pulls.listReviews,
+              { owner, repo, pull_number: pr.number, per_page: 100 }
+            );
+
+            const markerPattern = /<!--\s*oz-agent-review:\s*(\{.*?\})\s*-->/s;
+            const botLogins = new Set(['github-actions[bot]', 'oz-agent']);
+            const newestFirst = reviews
+              .filter((review) => review.state !== 'PENDING')
+              .sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0));
+
+            let lastReviewedSha = '';
+
+            for (const review of newestFirst) {
+              const body = review.body || '';
+              const marker = body.match(markerPattern);
+              if (!marker) continue;
+
+              try {
+                const metadata = JSON.parse(marker[1]);
+                if (metadata.head_sha && metadata.head_sha !== headSha) {
+                  lastReviewedSha = metadata.head_sha;
+                  break;
+                }
+              } catch (error) {
+                core.warning(`Ignoring invalid Oz review marker on review ${review.id}: ${error.message}`);
+              }
+            }
+
+            // Backward-compatible fallback for reviews posted before this workflow
+            // started adding Oz markers.
+            if (!lastReviewedSha) {
+              const previousBotReview = newestFirst.find(
+                (review) =>
+                  review.commit_id &&
+                  review.commit_id !== headSha &&
+                  botLogins.has(review.user?.login)
+              );
+              if (previousBotReview) {
+                lastReviewedSha = previousBotReview.commit_id;
+              }
+            }
+
+            if (lastReviewedSha) {
+              try {
+                execSync(`git merge-base --is-ancestor ${lastReviewedSha} HEAD`);
+              } catch (error) {
+                core.warning(
+                  `Previous Oz review commit ${lastReviewedSha} is not an ancestor of HEAD. Falling back to a full PR review.`
+                );
+                lastReviewedSha = '';
+              }
+            }
+
+            const reviewMode = lastReviewedSha ? 'incremental' : 'full';
+            core.setOutput('base_sha', lastReviewedSha || baseSha);
+            core.setOutput('last_reviewed_sha', lastReviewedSha);
+            core.setOutput('review_mode', reviewMode);
+            core.notice(
+              reviewMode === 'incremental'
+                ? `Reviewing changes since previous Oz review at ${lastReviewedSha}.`
+                : `No previous Oz review found. Reviewing full PR diff from ${baseSha}.`
+            );
+      - name: Build Annotated Diff
+        run: |
+          BASE_SHA="${{ steps.scope.outputs.base_sha }}"
+          if ! git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$BASE_SHA"
+          fi
+
           # Diff only the changes introduced in this PR, relative to the PR's base commit
+          # On follow-up reviews, BASE_SHA is the head commit from the last Oz review.
           # Add line numbers to each line: OLD_LINE NEW_LINE for context, OLD_LINE for deletions, NEW_LINE for additions
-          git diff ${{ github.event.pull_request.base.sha }}...HEAD | awk '
+          git diff "$BASE_SHA"...HEAD | awk '
             /^diff --git/ { print; next }
             /^index / { print; next }
             /^---/ { print; next }
@@ -142,11 +229,14 @@ jobs:
             const prompt = `Review Pull Request #${prNumber}.
 
             PR title: ${pr.title}
+            Review mode: ${{ steps.scope.outputs.review_mode }}
+            Last reviewed commit: ${{ steps.scope.outputs.last_reviewed_sha || 'none' }}
             PR description: Read \`${descriptionPath}\`
             Annotated diff: Read \`${diffPath}\`
             Existing PR comments: Read \`${commentsPath}\`
 
-            Use the review skill instructions as the base behavior. Apply them to this PR only.`;
+            Use the review skill instructions as the base behavior. Apply them to this PR only.
+            If review mode is incremental, review only the annotated diff since the last reviewed commit. Do not repeat a full PR overview or restate findings from existing PR comments. Leave summary empty unless there is a new cross-file concern that cannot be expressed inline.`;
 
             core.setOutput('prompt', prompt);
       - name: Run Oz Agent Review
@@ -169,6 +259,14 @@ jobs:
             const fs = require('fs');
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request.number;
+            const reviewMode = '${{ steps.scope.outputs.review_mode }}';
+            const reviewBaseSha = '${{ steps.scope.outputs.base_sha }}';
+            const reviewHeadSha = context.payload.pull_request.head.sha;
+            const reviewMarker = `<!-- oz-agent-review: ${JSON.stringify({
+              head_sha: reviewHeadSha,
+              base_sha: reviewBaseSha,
+              mode: reviewMode,
+            })} -->`;
 
             try {
               if (!fs.existsSync('review.json')) {
@@ -297,18 +395,28 @@ jobs:
                 comments.push(commentPayload);
               }
 
-              const summary =
+              let summary =
                 typeof review.summary === 'string' ? decodeNewlines(review.summary).trim() : '';
+              if (reviewMode === 'incremental') {
+                summary = '';
+              }
 
               const hasSummary = summary.length > 0;
 
               if (!hasSummary && comments.length === 0 && fileComments.length === 0) {
-                console.log('No valid summary or inline comments found. Skipping review posting.');
+                await github.rest.pulls.createReview({
+                  owner,
+                  repo,
+                  pull_number: prNumber,
+                  event: 'COMMENT',
+                  body: reviewMarker,
+                });
+                console.log('No valid summary or inline comments found. Posted hidden Oz review marker.');
                 return;
               }
 
               // Post the main review with text-file inline comments.
-              if (hasSummary || comments.length > 0) {
+              if (hasSummary || comments.length > 0 || fileComments.length > 0) {
                 const payload = {
                   owner,
                   repo,
@@ -317,9 +425,11 @@ jobs:
                 };
 
                 if (hasSummary) {
-                  payload.body = summary;
+                  payload.body = `${summary}\n\n${reviewMarker}`;
+                } else if (reviewMode === 'incremental') {
+                  payload.body = reviewMarker;
                 } else {
-                  payload.body = 'Automated review by Oz Agent';
+                  payload.body = `Automated review by Oz Agent\n\n${reviewMarker}`;
                 }
 
                 if (comments.length > 0) {

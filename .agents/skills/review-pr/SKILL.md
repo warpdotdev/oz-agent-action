@@ -15,6 +15,7 @@ Review the current pull request and write the output to `review.json`.
 - The workflow provides an annotated diff in `pr_diff.txt`.
 - The workflow provides the PR description in `pr_description.txt`.
 - The workflow provides existing PR comments (if any) in `pr_comments.txt`.
+- The workflow prompt identifies whether this is a `full` or `incremental` review.
 - Focus on files and lines changed by this PR.
 - Do not post comments or reviews to GitHub directly.
 
@@ -37,6 +38,8 @@ The `pr_comments.txt` file will only exist if there were existing comments on th
 - Prioritize correctness, security, error handling, and meaningful performance issues.
 - Include style or nit comments only when you can provide a concrete suggestion block.
 - If a concern involves untouched code, mention it in the summary instead of an inline comment.
+- For incremental reviews, review only the provided annotated diff since the last Oz review. Do not
+  repeat a high-level PR overview or restate findings from earlier comments.
 
 ## Binary Files
 
@@ -130,6 +133,9 @@ The `summary` must include:
 - Important concerns and any untouched-code concerns that could not be commented inline.
 - Issue counts in the format `Found: X critical, Y important, Z suggestions`.
 - A final recommendation of `Approve`, `Approve with nits`, or `Request changes`.
+
+For incremental reviews, leave `summary` as an empty string unless there is a new cross-file concern
+that cannot be expressed inline. Put new findings in `comments` whenever possible.
 
 ## Final Checks
 
