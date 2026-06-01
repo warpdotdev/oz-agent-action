@@ -7,8 +7,14 @@
 # Workflow: Auto PR Review
 # ======================================================================================
 # Usage:
-#   - Runs automatically when a Pull Request is opened or marked ready for review.
-#   - Analyzes the diff of the PR.
+#   - Runs automatically when a Pull Request first becomes reviewable:
+#     - A non-draft Pull Request is opened.
+#     - An existing draft Pull Request is marked ready for review.
+#   - Comment `/oz-review` on the Pull Request to request another review.
+#
+# Description:
+#   - Analyzes the PR diff and provides code review feedback.
+#   - Each re-review focuses on changes since the previous review.
 #
 # Setup:
 #   - Ensure WARP_API_KEY is set in Repository Secrets.
@@ -19,7 +25,8 @@
 #   - A general summary comment if applicable.
 #
 # When to use:
-#   - Use this to get immediate feedback on code changes before human review.
+#   - Use this to get immediate feedback on code changes before human review, then run `/oz-review`
+#     again after addressing feedback or adding commits.
 # ======================================================================================
 name: Auto PR Review
 on:
@@ -27,6 +34,9 @@ on:
     types:
       - opened
       - ready_for_review
+  issue_comment:
+    types:
+      - created
 jobs:
   review_pr:
     uses: warpdotdev/oz-agent-action/.github/workflows/review-pr.yml@v1

@@ -15,12 +15,17 @@ Review the current pull request and write the output to `review.json`.
 - The workflow provides an annotated diff in `pr_diff.txt`.
 - The workflow provides the PR description in `pr_description.txt`.
 - The workflow provides existing PR comments (if any) in `pr_comments.txt`.
+- On re-review runs, the workflow may also provide `pr_incremental_diff.txt`, containing changes
+  since the most recent Oz review.
+- When `pr_incremental_diff.txt` exists, use it to prioritize newly introduced or materially changed
+  concerns, while using `pr_diff.txt` for valid current inline comment locations.
 - Focus on files and lines changed by this PR.
 - Do not post comments or reviews to GitHub directly.
 
 ## Existing PR Comments
 
-Before writing your review, read `pr_comments.txt`. Use these comments to:
+Before writing your review, read `pr_comments.txt` and `pr_incremental_diff.txt` when it exists. Use
+these comments to:
 
 - Understand design decisions explained by the author or other reviewers.
 - Incorporate context from prior review feedback into your analysis.

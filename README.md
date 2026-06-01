@@ -130,9 +130,12 @@ _Full Example_: [examples/review-pr.yml](examples/review-pr.yml)
 
 _Consumer Template_: [consumer-workflows/review-pr.yml](consumer-workflows/review-pr.yml)
 
-**Usage:** Runs automatically when a Pull Request is opened or marked ready for review.
+**Usage:** Runs automatically when a Pull Request first becomes reviewable: either a non-draft Pull
+Request is opened, or an existing draft Pull Request is marked ready for review. Comment
+`/oz-review` on the Pull Request to request another review.
 
-**Description:** Analyzes the diff of the PR and provides code review feedback.
+**Description:** Analyzes the PR diff and provides code review feedback. Each re-review focuses on
+changes since the previous review.
 
 **Setup:**
 
@@ -145,7 +148,8 @@ _Consumer Template_: [consumer-workflows/review-pr.yml](consumer-workflows/revie
   improvements.
 - A general summary comment if applicable.
 
-**When to use:** Get immediate feedback on code changes before human review.
+**When to use:** Get immediate feedback on code changes before human review, then run `/oz-review`
+again after addressing feedback or adding commits.
 
 ### Auto Fix Issue
 
