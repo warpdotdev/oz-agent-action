@@ -29901,6 +29901,27 @@ function getMultilineInput(name, options) {
     return inputs.map(input => input.trim());
 }
 /**
+ * Gets the input value of the boolean type in the YAML 1.2 "core schema" specification.
+ * Support boolean input list: `true | True | TRUE | false | False | FALSE` .
+ * The return value is also in boolean type.
+ * ref: https://yaml.org/spec/1.2/spec.html#id2804923
+ *
+ * @param     name     name of the input to get
+ * @param     options  optional. See InputOptions.
+ * @returns   boolean
+ */
+function getBooleanInput(name, options) {
+    const trueValue = ['true', 'True', 'TRUE'];
+    const falseValue = ['false', 'False', 'FALSE'];
+    const val = getInput(name);
+    if (trueValue.includes(val))
+        return true;
+    if (falseValue.includes(val))
+        return false;
+    throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}\n` +
+        `Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+}
+/**
  * Sets the value of an output.
  *
  * @param     name     name of the output to set
@@ -33227,7 +33248,8 @@ async function runAgent(options = {}) {
     if (!options.skipInstall) {
         await installOz(channel, getInput('oz_version'));
     }
-    const args = ['agent', 'run'];
+    const cloud = getBooleanInput('cloud');
+    const args = ['agent', cloud ? 'run-cloud' : 'run'];
     if (prompt) {
         args.push('--prompt', prompt);
     }
@@ -33246,15 +33268,29 @@ async function runAgent(options = {}) {
     if (mcp) {
         args.push('--mcp', mcp);
     }
+    // `--cwd`, `--profile`, and `--share` are only accepted by `oz agent run`.
+    // `oz agent run-cloud` rejects them as unexpected arguments, so gate them on
+    // `!cloud` and warn when a caller sets one for a cloud run so the dropped
+    // input is discoverable instead of silently ignored.
     const cwd = getInput('cwd');
     if (cwd) {
-        args.push('--cwd', cwd);
+        if (cloud) {
+            warning('`cwd` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
+        else {
+            args.push('--cwd', cwd);
+        }
     }
     const profile = getInput('profile');
     if (profile) {
-        args.push('--profile', profile);
+        if (cloud) {
+            warning('`profile` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
+        else {
+            args.push('--profile', profile);
+        }
     }
-    else {
+    else if (!cloud) {
         args.push('--sandboxed');
     }
     const outputFormat = getInput('output_format');
@@ -33262,9 +33298,14 @@ async function runAgent(options = {}) {
         args.push('--output-format', outputFormat);
     }
     const shareRecipients = getMultilineInput('share');
-    if (shareRecipients) {
-        for (const recipient of shareRecipients) {
-            args.push('--share', recipient);
+    if (shareRecipients.length > 0) {
+        if (cloud) {
+            warning('`share` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
+        else {
+            for (const recipient of shareRecipients) {
+                args.push('--share', recipient);
+            }
         }
     }
     // In debug mode, show Oz logs on stderr.

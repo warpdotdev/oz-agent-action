@@ -109,7 +109,8 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     await installOz(channel, core.getInput('oz_version'))
   }
 
-  const args = ['agent', 'run']
+  const cloud = core.getBooleanInput('cloud')
+  const args = ['agent', cloud ? 'run-cloud' : 'run']
 
   if (prompt) {
     args.push('--prompt', prompt)
@@ -135,14 +136,31 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     args.push('--mcp', mcp)
   }
 
+  // `--cwd`, `--profile`, and `--share` are only accepted by `oz agent run`.
+  // `oz agent run-cloud` rejects them as unexpected arguments, so gate them on
+  // `!cloud` and warn when a caller sets one for a cloud run so the dropped
+  // input is discoverable instead of silently ignored.
   const cwd = core.getInput('cwd')
   if (cwd) {
-    args.push('--cwd', cwd)
+    if (cloud) {
+      core.warning(
+        '`cwd` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.'
+      )
+    } else {
+      args.push('--cwd', cwd)
+    }
   }
+
   const profile = core.getInput('profile')
   if (profile) {
-    args.push('--profile', profile)
-  } else {
+    if (cloud) {
+      core.warning(
+        '`profile` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.'
+      )
+    } else {
+      args.push('--profile', profile)
+    }
+  } else if (!cloud) {
     args.push('--sandboxed')
   }
 
@@ -152,9 +170,15 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
   }
 
   const shareRecipients = core.getMultilineInput('share')
-  if (shareRecipients) {
-    for (const recipient of shareRecipients) {
-      args.push('--share', recipient)
+  if (shareRecipients.length > 0) {
+    if (cloud) {
+      core.warning(
+        '`share` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.'
+      )
+    } else {
+      for (const recipient of shareRecipients) {
+        args.push('--share', recipient)
+      }
     }
   }
 

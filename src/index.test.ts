@@ -6,6 +6,7 @@ const coreOutputs = new Map<string, string>()
 
 const coreMocks = vi.hoisted(() => ({
   getInput: vi.fn(),
+  getBooleanInput: vi.fn(),
   getMultilineInput: vi.fn(),
   saveState: vi.fn(),
   getState: vi.fn(),
@@ -63,6 +64,7 @@ function setDefaultInputs(): void {
   coreInputs.set('output_format', 'text')
   coreInputs.set('warp_api_key', 'test-api-key')
   coreInputs.set('oz_version', 'latest')
+  coreInputs.set('cloud', 'false')
 }
 
 beforeEach(() => {
@@ -75,6 +77,7 @@ beforeEach(() => {
   setArch('x64')
 
   coreMocks.getInput.mockImplementation((name: string) => coreInputs.get(name) ?? '')
+  coreMocks.getBooleanInput.mockImplementation((name: string) => coreInputs.get(name) === 'true')
   coreMocks.getMultilineInput.mockImplementation(() => [])
   coreMocks.saveState.mockImplementation((name: string, value: string) => {
     coreState.set(name, value)
@@ -187,6 +190,104 @@ describe('runAgent', () => {
     expect(coreState.get(index.RUN_ID_STATE)).toBe('failed-run')
     expect(coreState.get(index.EXIT_CODE_STATE)).toBe('9')
     expect(coreMocks.setOutput).not.toHaveBeenCalled()
+  })
+
+  it('uses run-cloud subcommand when cloud is true', async () => {
+    coreInputs.set('cloud', 'true')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    expect(execMocks.getExecOutput).toHaveBeenCalledWith(
+      'oz',
+      expect.arrayContaining(['agent', 'run-cloud']),
+      expect.anything()
+    )
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('run')
+    expect(callArgs).not.toContain('--sandboxed')
+  })
+
+  it('uses run subcommand and adds --sandboxed when cloud is false', async () => {
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    expect(execMocks.getExecOutput).toHaveBeenCalledWith(
+      'oz',
+      expect.arrayContaining(['agent', 'run', '--sandboxed']),
+      expect.anything()
+    )
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('run-cloud')
+  })
+
+  it('omits run-only flags (--cwd, --profile, --share) for cloud runs even when set', async () => {
+    coreInputs.set('cloud', 'true')
+    coreInputs.set('cwd', './repo')
+    coreInputs.set('profile', 'ci-profile')
+    coreMocks.getMultilineInput.mockReturnValue(['teammate@warp.dev'])
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run-cloud']))
+    expect(callArgs).not.toContain('--cwd')
+    expect(callArgs).not.toContain('--profile')
+    expect(callArgs).not.toContain('--share')
+    expect(callArgs).not.toContain('--sandboxed')
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`cwd` is not supported for cloud agent runs')
+    )
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`profile` is not supported for cloud agent runs')
+    )
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`share` is not supported for cloud agent runs')
+    )
+  })
+
+  it('passes run-only flags and skips --sandboxed when a profile is set for non-cloud runs', async () => {
+    coreInputs.set('cwd', './repo')
+    coreInputs.set('profile', 'ci-profile')
+    coreMocks.getMultilineInput.mockReturnValue(['teammate@warp.dev'])
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run']))
+    expect(callArgs).not.toContain('run-cloud')
+    expect(callArgs).toEqual(
+      expect.arrayContaining([
+        '--cwd',
+        './repo',
+        '--profile',
+        'ci-profile',
+        '--share',
+        'teammate@warp.dev'
+      ])
+    )
+    // A profile already configures the sandbox, so --sandboxed is omitted.
+    expect(callArgs).not.toContain('--sandboxed')
+    expect(coreMocks.warning).not.toHaveBeenCalled()
   })
 })
 
