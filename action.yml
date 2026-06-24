@@ -46,6 +46,11 @@ inputs:
     description: 'Oz API key for the Oz agent'
     required: false
     default: ''
+  cloud:
+    description:
+      'Run the agent as a cloud agent (uses `oz agent run-cloud` instead of `oz agent run`)'
+    required: false
+    default: 'false'
   share:
     description: Recipients to share the agent's session with in Oz.
     required: false

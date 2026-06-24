@@ -29901,6 +29901,27 @@ function getMultilineInput(name, options) {
     return inputs.map(input => input.trim());
 }
 /**
+ * Gets the input value of the boolean type in the YAML 1.2 "core schema" specification.
+ * Support boolean input list: `true | True | TRUE | false | False | FALSE` .
+ * The return value is also in boolean type.
+ * ref: https://yaml.org/spec/1.2/spec.html#id2804923
+ *
+ * @param     name     name of the input to get
+ * @param     options  optional. See InputOptions.
+ * @returns   boolean
+ */
+function getBooleanInput(name, options) {
+    const trueValue = ['true', 'True', 'TRUE'];
+    const falseValue = ['false', 'False', 'FALSE'];
+    const val = getInput(name);
+    if (trueValue.includes(val))
+        return true;
+    if (falseValue.includes(val))
+        return false;
+    throw new TypeError(`Input does not meet YAML 1.2 "Core Schema" specification: ${name}\n` +
+        `Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
+}
+/**
  * Sets the value of an output.
  *
  * @param     name     name of the output to set
@@ -33227,7 +33248,8 @@ async function runAgent(options = {}) {
     if (!options.skipInstall) {
         await installOz(channel, getInput('oz_version'));
     }
-    const args = ['agent', 'run'];
+    const cloud = getBooleanInput('cloud');
+    const args = ['agent', cloud ? 'run-cloud' : 'run'];
     if (prompt) {
         args.push('--prompt', prompt);
     }
@@ -33254,7 +33276,7 @@ async function runAgent(options = {}) {
     if (profile) {
         args.push('--profile', profile);
     }
-    else {
+    else if (!cloud) {
         args.push('--sandboxed');
     }
     const outputFormat = getInput('output_format');

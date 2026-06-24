@@ -109,7 +109,8 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     await installOz(channel, core.getInput('oz_version'))
   }
 
-  const args = ['agent', 'run']
+  const cloud = core.getBooleanInput('cloud')
+  const args = ['agent', cloud ? 'run-cloud' : 'run']
 
   if (prompt) {
     args.push('--prompt', prompt)
@@ -142,7 +143,7 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
   const profile = core.getInput('profile')
   if (profile) {
     args.push('--profile', profile)
-  } else {
+  } else if (!cloud) {
     args.push('--sandboxed')
   }
 

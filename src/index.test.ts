@@ -6,6 +6,7 @@ const coreOutputs = new Map<string, string>()
 
 const coreMocks = vi.hoisted(() => ({
   getInput: vi.fn(),
+  getBooleanInput: vi.fn(),
   getMultilineInput: vi.fn(),
   saveState: vi.fn(),
   getState: vi.fn(),
@@ -63,6 +64,7 @@ function setDefaultInputs(): void {
   coreInputs.set('output_format', 'text')
   coreInputs.set('warp_api_key', 'test-api-key')
   coreInputs.set('oz_version', 'latest')
+  coreInputs.set('cloud', 'false')
 }
 
 beforeEach(() => {
@@ -75,6 +77,7 @@ beforeEach(() => {
   setArch('x64')
 
   coreMocks.getInput.mockImplementation((name: string) => coreInputs.get(name) ?? '')
+  coreMocks.getBooleanInput.mockImplementation((name: string) => coreInputs.get(name) === 'true')
   coreMocks.getMultilineInput.mockImplementation(() => [])
   coreMocks.saveState.mockImplementation((name: string, value: string) => {
     coreState.set(name, value)
@@ -187,6 +190,44 @@ describe('runAgent', () => {
     expect(coreState.get(index.RUN_ID_STATE)).toBe('failed-run')
     expect(coreState.get(index.EXIT_CODE_STATE)).toBe('9')
     expect(coreMocks.setOutput).not.toHaveBeenCalled()
+  })
+
+  it('uses run-cloud subcommand when cloud is true', async () => {
+    coreInputs.set('cloud', 'true')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    expect(execMocks.getExecOutput).toHaveBeenCalledWith(
+      'oz',
+      expect.arrayContaining(['agent', 'run-cloud']),
+      expect.anything()
+    )
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('run')
+    expect(callArgs).not.toContain('--sandboxed')
+  })
+
+  it('uses run subcommand and adds --sandboxed when cloud is false', async () => {
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    expect(execMocks.getExecOutput).toHaveBeenCalledWith(
+      'oz',
+      expect.arrayContaining(['agent', 'run', '--sandboxed']),
+      expect.anything()
+    )
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('run-cloud')
   })
 })
 
