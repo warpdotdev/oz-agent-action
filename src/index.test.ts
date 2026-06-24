@@ -229,6 +229,66 @@ describe('runAgent', () => {
     const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
     expect(callArgs).not.toContain('run-cloud')
   })
+
+  it('omits run-only flags (--cwd, --profile, --share) for cloud runs even when set', async () => {
+    coreInputs.set('cloud', 'true')
+    coreInputs.set('cwd', './repo')
+    coreInputs.set('profile', 'ci-profile')
+    coreMocks.getMultilineInput.mockReturnValue(['teammate@warp.dev'])
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run-cloud']))
+    expect(callArgs).not.toContain('--cwd')
+    expect(callArgs).not.toContain('--profile')
+    expect(callArgs).not.toContain('--share')
+    expect(callArgs).not.toContain('--sandboxed')
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`cwd` is not supported for cloud agent runs')
+    )
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`profile` is not supported for cloud agent runs')
+    )
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`share` is not supported for cloud agent runs')
+    )
+  })
+
+  it('passes run-only flags and skips --sandboxed when a profile is set for non-cloud runs', async () => {
+    coreInputs.set('cwd', './repo')
+    coreInputs.set('profile', 'ci-profile')
+    coreMocks.getMultilineInput.mockReturnValue(['teammate@warp.dev'])
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run']))
+    expect(callArgs).not.toContain('run-cloud')
+    expect(callArgs).toEqual(
+      expect.arrayContaining([
+        '--cwd',
+        './repo',
+        '--profile',
+        'ci-profile',
+        '--share',
+        'teammate@warp.dev'
+      ])
+    )
+    // A profile already configures the sandbox, so --sandboxed is omitted.
+    expect(callArgs).not.toContain('--sandboxed')
+    expect(coreMocks.warning).not.toHaveBeenCalled()
+  })
 })
 
 describe('reportShutdown', () => {

@@ -33268,13 +33268,27 @@ async function runAgent(options = {}) {
     if (mcp) {
         args.push('--mcp', mcp);
     }
+    // `--cwd`, `--profile`, and `--share` are only accepted by `oz agent run`.
+    // `oz agent run-cloud` rejects them as unexpected arguments, so gate them on
+    // `!cloud` and warn when a caller sets one for a cloud run so the dropped
+    // input is discoverable instead of silently ignored.
     const cwd = getInput('cwd');
     if (cwd) {
-        args.push('--cwd', cwd);
+        if (cloud) {
+            warning('`cwd` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
+        else {
+            args.push('--cwd', cwd);
+        }
     }
     const profile = getInput('profile');
     if (profile) {
-        args.push('--profile', profile);
+        if (cloud) {
+            warning('`profile` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
+        else {
+            args.push('--profile', profile);
+        }
     }
     else if (!cloud) {
         args.push('--sandboxed');
@@ -33284,9 +33298,14 @@ async function runAgent(options = {}) {
         args.push('--output-format', outputFormat);
     }
     const shareRecipients = getMultilineInput('share');
-    if (shareRecipients) {
-        for (const recipient of shareRecipients) {
-            args.push('--share', recipient);
+    if (shareRecipients.length > 0) {
+        if (cloud) {
+            warning('`share` is not supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
+        else {
+            for (const recipient of shareRecipients) {
+                args.push('--share', recipient);
+            }
         }
     }
     // In debug mode, show Oz logs on stderr.
