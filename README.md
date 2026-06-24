@@ -124,6 +124,34 @@ this typo").
 
 **When to use:** Interactive coding assistance during code review or issue triage.
 
+### Respond to Comment (REST API)
+
+_Full Example_: [examples/respond-to-comment-rest-api.yml](examples/respond-to-comment-rest-api.yml)
+
+**Usage:** Comment on a PR with `@oz-agent` (top-level PR comment or inline review comment).
+
+**Description:** A self-contained alternative to _Respond to Comment_ that does not use this action.
+It calls the [Oz REST API](https://docs.warp.dev/reference/api-and-sdk) directly with `curl` to
+spawn a **cloud** agent run, then links the human to the live session. It reacts to the comment with
+an emoji, posts `POST /agent/runs` to start the run, resolves the session via
+`GET /agent/runs/{run_id}`, and can `POST /agent/runs/{run_id}/followups` to send a comment back
+into the triggered Oz session.
+
+**Setup:**
+
+- Ensure `WARP_API_KEY` is set in Repository Secrets.
+- Set the `WARP_ENVIRONMENT_ID` repository variable to an Oz environment that has this repository
+  checked out and the `gh` CLI authenticated, so the cloud agent can push changes and reply on
+  GitHub.
+
+**Expected Output:**
+
+- The comment is acknowledged with an emoji reaction, and a reply links to the live Oz session.
+- The cloud agent works asynchronously and replies on the PR when done.
+
+**When to use:** When you want comment-triggered work to run as a cloud agent via the REST API
+instead of inside the GitHub runner.
+
 ### Auto PR Review
 
 _Full Example_: [examples/review-pr.yml](examples/review-pr.yml)

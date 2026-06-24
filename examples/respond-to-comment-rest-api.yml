@@ -1,0 +1,338 @@
+# ======================================================================================
+# Workflow: Respond to Comment (Oz REST API + curl)
+# ======================================================================================
+# This is a self-contained alternative to `respond-to-comment.yml`. Instead of using the
+# `warpdotdev/oz-agent-action` action, it talks to the Oz REST API directly with `curl`.
+# It mirrors the same prompting pattern, but spawns a *cloud* agent run rather than
+# running the agent inside the GitHub runner.
+#
+# Usage:
+#   - Comment on a PR with "@oz-agent" (top-level PR comment or an inline review comment).
+#   - You can ask questions or request code changes (e.g., "@oz-agent fix this typo").
+#
+# Flow:
+#   1. React with the "eyes" emoji on the triggering comment (acknowledgement).
+#   2. Build a prompt from the PR + comment context.
+#   3. POST /agent/runs to spawn a cloud agent run (captures the run_id).
+#   4. GET /agent/runs/{run_id} to resolve the shared session link.
+#   5. Reply on the PR comment with a link to the Oz session.
+#   6. When necessary, POST /agent/runs/{run_id}/followups to send a comment back into the
+#      Oz session that was triggered (e.g. to relay extra GitHub context / instructions).
+#
+# Setup:
+#   - Repository secret: WARP_API_KEY
+#       Oz API key (https://docs.warp.dev/developers/cli#api-key-authentication).
+#   - Repository variable: WARP_ENVIRONMENT_ID
+#       The Oz environment the cloud agent runs in. For the agent to push changes and reply
+#       on GitHub itself, this environment must have THIS repository checked out and the
+#       `gh` CLI authenticated against it.
+#   - Optional repository variable: WARP_API_BASE
+#       Defaults to https://app.warp.dev/api/v1.
+#   - Optional repository variable: WARP_AGENT_MODEL
+#       Warp model id to use (otherwise the team default is used).
+#
+# Notes:
+#   - The cloud agent run is asynchronous. This workflow does not block on completion; it
+#     hands work off to the cloud agent and links the human to the live Oz session.
+# ======================================================================================
+name: Respond to Comment (REST API)
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  respond:
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.comment.body,'@oz-agent') &&
+      (
+        github.event_name == 'pull_request_review_comment' ||
+        (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+      ) &&
+      github.actor != 'github-actions[bot]'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    env:
+      WARP_API_BASE: ${{ vars.WARP_API_BASE || 'https://app.warp.dev/api/v1' }}
+    steps:
+      - name: Acknowledge Comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          COMMENT_ID="${{ github.event.comment.id }}"
+          REACTION="eyes"
+
+          if [ "${{ github.event_name }}" == "pull_request_review_comment" ]; then
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/pulls/comments/$COMMENT_ID/reactions" \
+              -f content="$REACTION"
+          else
+            gh api \
+              --method POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "/repos/${{ github.repository }}/issues/comments/$COMMENT_ID/reactions" \
+              -f content="$REACTION"
+          fi
+
+      - name: Construct Prompt
+        id: prompt
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { owner, repo } = context.repo;
+
+            let prNumber;
+            if (context.eventName === 'issue_comment') {
+              prNumber = context.payload.issue.number;
+            } else {
+              prNumber = context.payload.pull_request.number;
+            }
+
+            // Fetch PR details to provide full context.
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            // Get the list of files changed in the PR.
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+            const fileList = files.map(f => f.filename).join(', ');
+
+            const commentBody = context.payload.comment.body;
+            const author = context.payload.comment.user.login;
+
+            let prompt = `You are an expert software engineer and the Oz Agent.
+            You are responding to a specific request on a Pull Request. Your goal is to implement the requested changes directly in the codebase.
+
+            **Context**:
+            - **Repository**: ${owner}/${repo}
+            - **PR Number**: #${prNumber}
+            - **PR Title**: ${pr.title}
+            - **PR Branch**: ${pr.head.ref}
+            - **PR Description**: ${pr.body || 'No description provided.'}
+            - **Changed Files**: ${fileList}
+            - **User Request**: "${commentBody}" (from user @${author})
+            `;
+
+            if (context.eventName === 'pull_request_review_comment') {
+              const filePath = context.payload.comment.path;
+              const line = context.payload.comment.line;
+              const diffHunk = context.payload.comment.diff_hunk;
+              prompt += `
+            - **Location**: File '${filePath}' at line ${line}.
+            - **Diff Context**:
+            \`\`\`diff
+            ${diffHunk}
+            \`\`\`
+            `;
+              prompt += `
+            **Instructions**:
+            1. Read the file at '${filePath}' to understand the full context around the line.
+            `;
+            } else {
+              prompt += `
+            **Instructions**:
+            1. Focus your analysis on the changed files (${fileList}) unless the request explicitly mentions other files.
+            `;
+            }
+
+            prompt += `2. Check out PR #${prNumber} (e.g. \`gh pr checkout ${prNumber}\`) before making changes.
+            3. If the user is asking for code changes, implement them, then commit and push to the PR branch '${pr.head.ref}'.
+            4. If the user is asking a question, answer it based on your analysis of the code.
+            5. Ensure your changes (if any) are correct and follow the existing style.
+            6. Format your response in Markdown.
+            7. Post your final response as a reply to the user's comment using the \`gh\` CLI.
+            `;
+
+            // Write the prompt to a file so later steps can build a JSON payload safely.
+            const promptPath = path.join(process.env.RUNNER_TEMP, 'oz_prompt.txt');
+            fs.writeFileSync(promptPath, prompt, 'utf8');
+
+            core.setOutput('prompt_path', promptPath);
+            core.setOutput('pr_number', String(prNumber));
+
+      - name: Start Oz Cloud Agent Run
+        id: start
+        env:
+          WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
+          WARP_ENVIRONMENT_ID: ${{ vars.WARP_ENVIRONMENT_ID }}
+          WARP_AGENT_MODEL: ${{ vars.WARP_AGENT_MODEL || '' }}
+          PROMPT_PATH: ${{ steps.prompt.outputs.prompt_path }}
+          PR_NUMBER: ${{ steps.prompt.outputs.pr_number }}
+        run: |
+          set -euo pipefail
+
+          # Build the agent config (only include fields that are set).
+          CONFIG=$(jq -n \
+            --arg env "$WARP_ENVIRONMENT_ID" \
+            --arg model "$WARP_AGENT_MODEL" \
+            '{}
+              | (if $env != "" then .environment_id = $env else . end)
+              | (if $model != "" then .model_id = $model else . end)')
+
+          # Build the request body. --rawfile safely embeds the multi-line prompt as JSON.
+          PAYLOAD=$(jq -n \
+            --rawfile prompt "$PROMPT_PATH" \
+            --arg title "Respond to comment on PR #$PR_NUMBER" \
+            --argjson config "$CONFIG" \
+            '{prompt: $prompt, title: $title, config: $config}')
+
+          HTTP_BODY=$(mktemp)
+          HTTP_CODE=$(curl -sS -L -o "$HTTP_BODY" -w "%{http_code}" \
+            -X POST "$WARP_API_BASE/agent/runs" \
+            -H "Authorization: Bearer $WARP_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          echo "HTTP $HTTP_CODE"
+          cat "$HTTP_BODY"
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Failed to start Oz agent run (HTTP $HTTP_CODE)" >&2
+            exit 1
+          fi
+
+          RUN_ID=$(jq -r '.run_id // empty' "$HTTP_BODY")
+          if [ -z "$RUN_ID" ]; then
+            echo "No run_id returned by the API" >&2
+            exit 1
+          fi
+          echo "Started run: $RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Session Link
+        id: session
+        env:
+          WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
+          RUN_ID: ${{ steps.start.outputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          SESSION_LINK=""
+          # The session link may not be available immediately; poll a few times.
+          for i in 1 2 3 4 5; do
+            RESPONSE=$(curl -sS -L \
+              -X GET "$WARP_API_BASE/agent/runs/$RUN_ID" \
+              -H "Authorization: Bearer $WARP_API_KEY" \
+              -H "Content-Type: application/json")
+            SESSION_LINK=$(echo "$RESPONSE" | jq -r '.session_link // empty')
+            if [ -n "$SESSION_LINK" ]; then
+              break
+            fi
+            sleep 3
+          done
+
+          echo "session_link=$SESSION_LINK" >> "$GITHUB_OUTPUT"
+
+      - name: Reply With Session Link
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          RUN_ID: ${{ steps.start.outputs.run_id }}
+          SESSION_LINK: ${{ steps.session.outputs.session_link }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const runId = process.env.RUN_ID;
+            const sessionLink = process.env.SESSION_LINK;
+            const author = context.payload.comment.user.login;
+
+            let body = `@${author}: 👋 On it — I started an Oz cloud agent (run \`${runId}\`) to work on your request.`;
+            if (sessionLink) {
+              body += `\n\nYou can follow along in the [Oz session](${sessionLink}).`;
+            }
+
+            const { owner, repo } = context.repo;
+            if (context.eventName === 'pull_request_review_comment') {
+              await github.rest.pulls.createReplyForReviewComment({
+                owner,
+                repo,
+                pull_number: context.payload.pull_request.number,
+                comment_id: context.payload.comment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: context.payload.issue.number,
+                body,
+              });
+            }
+
+      - name: Post Follow-up To Oz Session (when necessary)
+        # Send a comment back into the Oz session that was just triggered. This is useful
+        # when there is extra GitHub context to relay to the run (for example, the exact
+        # comment URL the agent should reply to). Tighten the `if:` condition to control
+        # exactly when a follow-up should be sent.
+        if: success() && steps.start.outputs.run_id != ''
+        env:
+          WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
+          RUN_ID: ${{ steps.start.outputs.run_id }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+        run: |
+          set -euo pipefail
+
+          MESSAGE="Additional context from GitHub: please post your final answer as a reply to the comment by @$COMMENT_AUTHOR at $COMMENT_URL using the \`gh\` CLI once you are done."
+
+          PAYLOAD=$(jq -n --arg message "$MESSAGE" '{message: $message}')
+
+          HTTP_BODY=$(mktemp)
+          HTTP_CODE=$(curl -sS -L -o "$HTTP_BODY" -w "%{http_code}" \
+            -X POST "$WARP_API_BASE/agent/runs/$RUN_ID/followups" \
+            -H "Authorization: Bearer $WARP_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          echo "HTTP $HTTP_CODE"
+          cat "$HTTP_BODY"
+
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Failed to post follow-up to Oz session (HTTP $HTTP_CODE)" >&2
+            exit 1
+          fi
+
+      - name: Report Error
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const body = `@${context.payload.comment.user.login}: ⚠️ I encountered an error while starting the Oz agent. Please check the [workflow run logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.`;
+            const { owner, repo } = context.repo;
+
+            if (context.eventName === 'pull_request_review_comment') {
+              await github.rest.pulls.createReplyForReviewComment({
+                owner,
+                repo,
+                pull_number: context.payload.pull_request.number,
+                comment_id: context.payload.comment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: context.payload.issue.number,
+                body,
+              });
+            }
