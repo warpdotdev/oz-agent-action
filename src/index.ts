@@ -111,6 +111,16 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
 
   const cloud = core.getBooleanInput('cloud')
   const args = ['agent', cloud ? 'run-cloud' : 'run']
+  const host = core.getInput('host')
+  if (host) {
+    if (cloud) {
+      args.push('--host', host)
+    } else {
+      core.warning(
+        '`host` is not supported for local agent runs (`oz agent run`) and will be ignored.'
+      )
+    }
+  }
 
   if (prompt) {
     args.push('--prompt', prompt)
