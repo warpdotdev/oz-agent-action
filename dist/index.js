@@ -33250,6 +33250,15 @@ async function runAgent(options = {}) {
     }
     const cloud = getBooleanInput('cloud');
     const args = ['agent', cloud ? 'run-cloud' : 'run'];
+    const host = getInput('host');
+    if (host) {
+        if (cloud) {
+            args.push('--host', host);
+        }
+        else {
+            warning('`host` is not supported for local agent runs (`oz agent run`) and will be ignored.');
+        }
+    }
     if (prompt) {
         args.push('--prompt', prompt);
     }

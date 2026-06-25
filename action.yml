@@ -51,6 +51,10 @@ inputs:
       'Run the agent as a cloud agent (uses `oz agent run-cloud` instead of `oz agent run`)'
     required: false
     default: 'false'
+  host:
+    description: 'Host to route the cloud agent run to'
+    required: false
+    default: ''
   share:
     description: Recipients to share the agent's session with in Oz.
     required: false

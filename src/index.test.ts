@@ -65,6 +65,7 @@ function setDefaultInputs(): void {
   coreInputs.set('warp_api_key', 'test-api-key')
   coreInputs.set('oz_version', 'latest')
   coreInputs.set('cloud', 'false')
+  coreInputs.set('host', '')
 }
 
 beforeEach(() => {
@@ -210,6 +211,38 @@ describe('runAgent', () => {
     const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
     expect(callArgs).not.toContain('run')
     expect(callArgs).not.toContain('--sandboxed')
+  })
+
+  it('routes cloud runs to the requested host', async () => {
+    coreInputs.set('cloud', 'true')
+    coreInputs.set('host', 'worker-1')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run-cloud', '--host', 'worker-1']))
+  })
+
+  it('ignores host for non-cloud runs', async () => {
+    coreInputs.set('host', 'worker-1')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('--host')
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      '`host` is not supported for local agent runs (`oz agent run`) and will be ignored.'
+    )
   })
 
   it('uses run subcommand and adds --sandboxed when cloud is false', async () => {
