@@ -66,6 +66,7 @@ function setDefaultInputs(): void {
   coreInputs.set('oz_version', 'latest')
   coreInputs.set('cloud', 'false')
   coreInputs.set('host', '')
+  coreInputs.set('environment', '')
 }
 
 beforeEach(() => {
@@ -211,6 +212,26 @@ describe('runAgent', () => {
     const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
     expect(callArgs).not.toContain('run')
     expect(callArgs).not.toContain('--sandboxed')
+    expect(callArgs).toContain('--no-environment')
+    expect(callArgs).not.toContain('--environment')
+  })
+
+  it('routes cloud runs to the requested environment', async () => {
+    coreInputs.set('cloud', 'true')
+    coreInputs.set('environment', 'test-environment-id')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(
+      expect.arrayContaining(['agent', 'run-cloud', '--environment', 'test-environment-id'])
+    )
+    expect(callArgs).not.toContain('--no-environment')
   })
 
   it('routes cloud runs to the requested host', async () => {
@@ -242,6 +263,24 @@ describe('runAgent', () => {
     expect(callArgs).not.toContain('--host')
     expect(coreMocks.warning).toHaveBeenCalledWith(
       '`host` is not supported for local agent runs (`oz agent run`) and will be ignored.'
+    )
+  })
+
+  it('ignores environment for non-cloud runs', async () => {
+    coreInputs.set('environment', 'environment-1')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('--environment')
+    expect(callArgs).not.toContain('--no-environment')
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      '`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.'
     )
   })
 

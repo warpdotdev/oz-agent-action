@@ -52,6 +52,13 @@ const defaultReusableWorkflowInputs = {
     required: false,
     type: 'string',
     default: ''
+  },
+  environment: {
+    description:
+      'Optional environment ID for the cloud agent run. Cloud runs use no environment when unset.',
+    required: false,
+    type: 'string',
+    default: ''
   }
 }
 
@@ -247,6 +254,10 @@ function updateOzAgentActionInputs(job, workflowCallInputs) {
 
     if ('host' in workflowCallInputs) {
       step.with.host = '${{ inputs.host }}'
+    }
+
+    if ('environment' in workflowCallInputs) {
+      step.with.environment = '${{ inputs.environment }}'
     }
   }
 }

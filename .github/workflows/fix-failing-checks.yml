@@ -43,6 +43,12 @@ on:
         required: false
         type: string
         default: ''
+      environment:
+        description:
+          Optional environment ID for the cloud agent run. Cloud runs use no environment when unset.
+        required: false
+        type: string
+        default: ''
     secrets:
       WARP_API_KEY:
         description: Oz API key used by the Oz Agent.
@@ -160,6 +166,7 @@ jobs:
           skill: ${{ inputs.skill || '' }}
           cloud: ${{ inputs.cloud }}
           host: ${{ inputs.host }}
+          environment: ${{ inputs.environment }}
       - name: Create Fix PR
         env:
           GH_TOKEN: ${{ github.token }}

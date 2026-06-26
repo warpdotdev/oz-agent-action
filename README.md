@@ -47,7 +47,18 @@ By default, the action runs the agent on the GitHub Actions runner using `oz age
 ```
 
 Cloud runs use Warp-hosted workers by default. Set `host` only when routing a cloud run to a
-self-hosted worker.
+self-hosted worker. Cloud runs use no environment by default. Set `environment` to an environment ID
+when the agent needs a configured environment:
+
+```yaml
+- name: Run Oz in a cloud environment
+  uses: warpdotdev/oz-agent-action@v1
+  with:
+    prompt: Review the code changes on this branch
+    cloud: true
+    environment: <environment-id>
+    warp_api_key: ${{ secrets.WARP_API_KEY }}
+```
 
 ## Using Skills
 
