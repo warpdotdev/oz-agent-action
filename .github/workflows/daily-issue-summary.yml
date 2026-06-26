@@ -33,6 +33,16 @@ on:
         required: false
         type: string
         default: ''
+      cloud:
+        description: Run the agent as a cloud agent using `oz agent run-cloud`.
+        required: false
+        type: boolean
+        default: false
+      host:
+        description: Optional host to route the agent run to when cloud mode is enabled.
+        required: false
+        type: string
+        default: ''
     secrets:
       WARP_API_KEY:
         description: Oz API key used by the Oz Agent.
@@ -135,6 +145,8 @@ jobs:
           name: ${{ inputs.name || vars.WARP_AGENT_NAME || '' }}
           mcp: ${{ inputs.mcp || vars.WARP_AGENT_MCP || '' }}
           skill: ${{ inputs.skill || '' }}
+          cloud: ${{ inputs.cloud }}
+          host: ${{ inputs.host }}
       - name: Post to Slack
         if: steps.fetch_issues.outputs.has_issues == 'true'
         env:

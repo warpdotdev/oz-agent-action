@@ -32,6 +32,23 @@ Then, add a step to your workflow that runs Oz:
     warp_api_key: ${{ secrets.WARP_API_KEY }}
 ```
 
+## Running in cloud mode
+
+By default, the action runs the agent on the GitHub Actions runner using `oz agent run`. Set
+`cloud: true` to start an Oz cloud agent using `oz agent run-cloud`:
+
+```yaml
+- name: Run Oz in cloud mode
+  uses: warpdotdev/oz-agent-action@v1
+  with:
+    prompt: Review the code changes on this branch
+    cloud: true
+    warp_api_key: ${{ secrets.WARP_API_KEY }}
+```
+
+Cloud runs use Warp-hosted workers by default. Set `host` only when routing a cloud run to a
+self-hosted worker.
+
 ## Using Skills
 
 Skills provide reusable, specialized capabilities for the Oz Agent. You can find a curated set of

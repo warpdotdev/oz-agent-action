@@ -40,6 +40,18 @@ const defaultReusableWorkflowInputs = {
     description: 'Optional Oz skill identifier to use as the base prompt for the agent.',
     required: false,
     default: ''
+  },
+  cloud: {
+    description: 'Run the agent as a cloud agent using `oz agent run-cloud`.',
+    required: false,
+    type: 'boolean',
+    default: false
+  },
+  host: {
+    description: 'Optional host to route the agent run to when cloud mode is enabled.',
+    required: false,
+    type: 'string',
+    default: ''
   }
 }
 
@@ -165,7 +177,7 @@ function buildWorkflowCallInputs(inputsConfig) {
     const entry = {
       description: info.description ?? '',
       required: Boolean(info.required),
-      type: 'string'
+      type: info.type ?? 'string'
     }
     if (info.default !== undefined) {
       entry.default = info.default
@@ -227,6 +239,14 @@ function updateOzAgentActionInputs(job, workflowCallInputs) {
       step.with.skill = defaultSkill
         ? `\${{ inputs.skill || '${quoteGithubExpressionString(defaultSkill)}' }}`
         : "${{ inputs.skill || '' }}"
+    }
+
+    if ('cloud' in workflowCallInputs) {
+      step.with.cloud = '${{ inputs.cloud }}'
+    }
+
+    if ('host' in workflowCallInputs) {
+      step.with.host = '${{ inputs.host }}'
     }
   }
 }
@@ -354,7 +374,7 @@ async function generateConsumerTemplate(scenario, exampleYaml) {
   if (scenario.reusableWorkflow?.inputs) {
     for (const [inputName, inputConfig] of Object.entries(scenario.reusableWorkflow.inputs)) {
       if (!inputConfig.required) {
-        withBlock[inputName] = ''
+        withBlock[inputName] = inputConfig.default ?? ''
       }
     }
   }
