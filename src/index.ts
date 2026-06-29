@@ -122,6 +122,18 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     }
   }
 
+  const environment = core.getInput('environment')
+  if (cloud) {
+    if (environment) {
+      args.push('--environment', environment)
+    } else {
+      args.push('--no-environment')
+    }
+  } else if (environment) {
+    core.warning(
+      '`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.'
+    )
+  }
   if (prompt) {
     args.push('--prompt', prompt)
   }

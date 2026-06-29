@@ -37,6 +37,7 @@ jobs:
       skill: ''
       cloud: false
       host: ''
+      environment: ''
     secrets:
       WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

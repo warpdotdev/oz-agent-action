@@ -39,5 +39,6 @@ jobs:
       skill: ''
       cloud: false
       host: ''
+      environment: ''
     secrets:
       WARP_API_KEY: ${{ secrets.WARP_API_KEY }}

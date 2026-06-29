@@ -55,6 +55,10 @@ inputs:
     description: 'Host to route the cloud agent run to'
     required: false
     default: ''
+  environment:
+    description: 'Environment ID for the cloud agent run; defaults to no environment when unset'
+    required: false
+    default: ''
   share:
     description: Recipients to share the agent's session with in Oz.
     required: false

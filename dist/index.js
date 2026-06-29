@@ -33259,6 +33259,18 @@ async function runAgent(options = {}) {
             warning('`host` is not supported for local agent runs (`oz agent run`) and will be ignored.');
         }
     }
+    const environment = getInput('environment');
+    if (cloud) {
+        if (environment) {
+            args.push('--environment', environment);
+        }
+        else {
+            args.push('--no-environment');
+        }
+    }
+    else if (environment) {
+        warning('`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.');
+    }
     if (prompt) {
         args.push('--prompt', prompt);
     }
