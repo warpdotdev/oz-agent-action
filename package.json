@@ -62,6 +62,7 @@
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "9.0.9"
-    }
+    },
+    "undici": ">=6.27.0"
   }
 }
