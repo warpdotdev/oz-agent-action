@@ -43556,9 +43556,9 @@ async function runAgent(options = {}) {
     if (!prompt && !savedPrompt && !skill) {
         throw new Error('Either `prompt`, `saved_prompt`, or `skill` must be provided');
     }
-    const apiKey = getInput('warp_api_key');
+    const apiKey = getInput('warp_api_key') || process$1.env.WARP_API_KEY || '';
     if (!apiKey) {
-        throw new Error('`warp_api_key` must be provided.');
+        throw new Error('`warp_api_key` must be provided (via the `warp_api_key` input or the `WARP_API_KEY` environment variable).');
     }
     const command = commandForChannel(channel);
     if (!options.skipInstall) {
@@ -43689,7 +43689,7 @@ async function reportShutdown() {
         info('No Oz run ID was captured; skipping shutdown report.');
         return;
     }
-    const apiKey = getInput('warp_api_key');
+    const apiKey = getInput('warp_api_key') || process$1.env.WARP_API_KEY || '';
     if (!apiKey) {
         warning('`warp_api_key` is unavailable; skipping shutdown report.');
         return;

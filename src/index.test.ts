@@ -158,6 +158,31 @@ describe('buildReportShutdownArgs', () => {
 })
 
 describe('runAgent', () => {
+  it('uses WARP_API_KEY env var when warp_api_key input is not set', async () => {
+    coreInputs.set('warp_api_key', '')
+    process.env.WARP_API_KEY = 'env-api-key'
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: env-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callOptions = execMocks.getExecOutput.mock.calls[0][2] as { env?: Record<string, string> }
+    expect(callOptions.env?.WARP_API_KEY).toBe('env-api-key')
+    delete process.env.WARP_API_KEY
+  })
+
+  it('throws when neither warp_api_key input nor WARP_API_KEY env var is set', async () => {
+    coreInputs.set('warp_api_key', '')
+    delete process.env.WARP_API_KEY
+
+    await expect(index.runAgent({ skipInstall: true })).rejects.toThrow(
+      '`warp_api_key` must be provided'
+    )
+  })
+
   it('saves the run ID from streaming stdout before the process exits', async () => {
     execMocks.getExecOutput.mockImplementation(async (_command, _args, options) => {
       options.listeners.stdout(Buffer.from('Run ID: streamed-run\n'))

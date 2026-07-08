@@ -43,7 +43,9 @@ inputs:
     required: true
     default: text
   warp_api_key:
-    description: 'Oz API key for the Oz agent'
+    description:
+      'Oz API key for the Oz agent. Can also be provided via the `WARP_API_KEY` environment
+      variable.'
     required: false
     default: ''
   cloud:

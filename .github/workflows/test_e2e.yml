@@ -9,6 +9,10 @@ jobs:
   run_warp_test:
     name: Test running the Oz agent
     runs-on: ubuntu-latest
+    # Skip for dependabot PRs - secrets are not available in that context.
+    if: github.actor != 'dependabot[bot]'
+    env:
+      WARP_API_KEY: ${{ secrets.WARP_API_KEY }}
     steps:
       - uses: actions/checkout@v5
 
@@ -18,7 +22,6 @@ jobs:
         with:
           oz_channel: preview
           prompt: Say hello
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
 
       - name: Verify output
         env:
@@ -35,7 +38,6 @@ jobs:
         with:
           oz_channel: preview
           skill: 'test-skill'
-          warp_api_key: ${{ secrets.WARP_API_KEY }}
 
       - name: Verify skill output
         env:

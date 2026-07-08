@@ -98,9 +98,11 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     throw new Error('Either `prompt`, `saved_prompt`, or `skill` must be provided')
   }
 
-  const apiKey = core.getInput('warp_api_key')
+  const apiKey = core.getInput('warp_api_key') || process.env.WARP_API_KEY || ''
   if (!apiKey) {
-    throw new Error('`warp_api_key` must be provided.')
+    throw new Error(
+      '`warp_api_key` must be provided (via the `warp_api_key` input or the `WARP_API_KEY` environment variable).'
+    )
   }
 
   const command = commandForChannel(channel)
@@ -253,7 +255,7 @@ export async function reportShutdown(): Promise<void> {
     return
   }
 
-  const apiKey = core.getInput('warp_api_key')
+  const apiKey = core.getInput('warp_api_key') || process.env.WARP_API_KEY || ''
   if (!apiKey) {
     core.warning('`warp_api_key` is unavailable; skipping shutdown report.')
     return
