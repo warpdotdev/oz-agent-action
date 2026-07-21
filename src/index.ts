@@ -110,6 +110,7 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
   }
 
   const cloud = core.getBooleanInput('cloud')
+  const computerUse = core.getBooleanInput('computer_use')
   const args = ['agent', cloud ? 'run-cloud' : 'run']
   const host = core.getInput('host')
   if (host) {
@@ -129,10 +130,20 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     } else {
       args.push('--no-environment')
     }
-  } else if (environment) {
-    core.warning(
-      '`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.'
-    )
+    if (computerUse) {
+      args.push('--computer-use')
+    }
+  } else {
+    if (environment) {
+      core.warning(
+        '`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.'
+      )
+    }
+    if (computerUse) {
+      core.warning(
+        '`computer_use` is only supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.'
+      )
+    }
   }
   if (prompt) {
     args.push('--prompt', prompt)

@@ -63,6 +63,12 @@ inputs:
     description: Recipients to share the agent's session with in Oz.
     required: false
     default: ''
+  computer_use:
+    description:
+      'Enable computer use for cloud agent runs (`oz agent run-cloud --computer-use`). Ignored for
+      local runs.'
+    required: false
+    default: 'false'
   oz_channel:
     description: Oz release channel to use
     required: true

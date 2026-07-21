@@ -43565,6 +43565,7 @@ async function runAgent(options = {}) {
         await installOz(channel, getInput('oz_version'));
     }
     const cloud = getBooleanInput('cloud');
+    const computerUse = getBooleanInput('computer_use');
     const args = ['agent', cloud ? 'run-cloud' : 'run'];
     const host = getInput('host');
     if (host) {
@@ -43583,9 +43584,17 @@ async function runAgent(options = {}) {
         else {
             args.push('--no-environment');
         }
+        if (computerUse) {
+            args.push('--computer-use');
+        }
     }
-    else if (environment) {
-        warning('`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.');
+    else {
+        if (environment) {
+            warning('`environment` is not supported for local agent runs (`oz agent run`) and will be ignored.');
+        }
+        if (computerUse) {
+            warning('`computer_use` is only supported for cloud agent runs (`oz agent run-cloud`) and will be ignored.');
+        }
     }
     if (prompt) {
         args.push('--prompt', prompt);

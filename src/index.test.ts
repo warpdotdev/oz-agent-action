@@ -65,6 +65,7 @@ function setDefaultInputs(): void {
   coreInputs.set('warp_api_key', 'test-api-key')
   coreInputs.set('oz_version', 'latest')
   coreInputs.set('cloud', 'false')
+  coreInputs.set('computer_use', 'false')
   coreInputs.set('host', '')
   coreInputs.set('environment', '')
 }
@@ -192,6 +193,58 @@ describe('runAgent', () => {
     expect(coreState.get(index.RUN_ID_STATE)).toBe('failed-run')
     expect(coreState.get(index.EXIT_CODE_STATE)).toBe('9')
     expect(coreMocks.setOutput).not.toHaveBeenCalled()
+  })
+
+  it('adds --computer-use for cloud runs when computer_use is true', async () => {
+    coreInputs.set('cloud', 'true')
+    coreInputs.set('computer_use', 'true')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(
+      expect.arrayContaining(['agent', 'run-cloud', '--computer-use', '--no-environment'])
+    )
+  })
+
+  it('omits --computer-use for cloud runs when computer_use is false', async () => {
+    coreInputs.set('cloud', 'true')
+    coreInputs.set('computer_use', 'false')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: cloud-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run-cloud']))
+    expect(callArgs).not.toContain('--computer-use')
+  })
+
+  it('warns and ignores computer_use for local runs', async () => {
+    coreInputs.set('cloud', 'false')
+    coreInputs.set('computer_use', 'true')
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toEqual(expect.arrayContaining(['agent', 'run', '--sandboxed']))
+    expect(callArgs).not.toContain('--computer-use')
+    expect(coreMocks.warning).toHaveBeenCalledWith(
+      expect.stringContaining('`computer_use` is only supported for cloud agent runs')
+    )
   })
 
   it('uses run-cloud subcommand when cloud is true', async () => {
