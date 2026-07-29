@@ -63,6 +63,7 @@
     "@typescript-eslint/typescript-estree": {
       "minimatch": "9.0.9"
     },
-    "undici": ">=6.27.0"
+    "undici": ">=6.27.0",
+    "brace-expansion": ">=1.1.16"
   }
 }
