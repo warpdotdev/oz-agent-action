@@ -43566,6 +43566,7 @@ async function runAgent(options = {}) {
     }
     const cloud = getBooleanInput('cloud');
     const computerUse = getBooleanInput('computer_use');
+    const debug = getBooleanInput('debug');
     const args = ['agent', cloud ? 'run-cloud' : 'run'];
     const host = getInput('host');
     if (host) {
@@ -43654,8 +43655,10 @@ async function runAgent(options = {}) {
             }
         }
     }
-    // In debug mode, show Oz logs on stderr.
-    if (isDebug()) {
+    // Enable Oz debug logging when the explicit `debug` input is set, or when GitHub
+    // requests step-debug logging (e.g. re-run with step debug logging enabled).
+    // In debug mode, Oz logs are shown on stderr.
+    if (debug || isDebug()) {
         args.push('--debug');
     }
     let stdout = '';

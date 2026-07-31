@@ -69,6 +69,14 @@ inputs:
       local runs.'
     required: false
     default: 'false'
+  debug:
+    description:
+      "Always enable Oz debug logging (`--debug`), independent of GitHub's step-debug signal. When
+      set to true, debug logs are emitted even if the workflow was not run with step debug logging
+      enabled. When false, debug logging still activates if GitHub requests it (e.g. re-run with
+      step debug logging)."
+    required: false
+    default: 'false'
   oz_channel:
     description: Oz release channel to use
     required: true
