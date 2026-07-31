@@ -66,6 +66,7 @@ function setDefaultInputs(): void {
   coreInputs.set('oz_version', 'latest')
   coreInputs.set('cloud', 'false')
   coreInputs.set('computer_use', 'false')
+  coreInputs.set('debug', 'false')
   coreInputs.set('host', '')
   coreInputs.set('environment', '')
 }
@@ -413,6 +414,66 @@ describe('runAgent', () => {
     // A profile already configures the sandbox, so --sandboxed is omitted.
     expect(callArgs).not.toContain('--sandboxed')
     expect(coreMocks.warning).not.toHaveBeenCalled()
+  })
+
+  it('omits --debug when debug is false and GitHub step-debug is off', async () => {
+    coreInputs.set('debug', 'false')
+    coreMocks.isDebug.mockReturnValue(false)
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).not.toContain('--debug')
+  })
+
+  it('adds --debug when the debug input is true even without GitHub step-debug', async () => {
+    coreInputs.set('debug', 'true')
+    coreMocks.isDebug.mockReturnValue(false)
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toContain('--debug')
+  })
+
+  it('still adds --debug from GitHub step-debug when the debug input is false', async () => {
+    coreInputs.set('debug', 'false')
+    coreMocks.isDebug.mockReturnValue(true)
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs).toContain('--debug')
+  })
+
+  it('adds --debug exactly once when both debug input and GitHub step-debug are on', async () => {
+    coreInputs.set('debug', 'true')
+    coreMocks.isDebug.mockReturnValue(true)
+    execMocks.getExecOutput.mockResolvedValue({
+      exitCode: 0,
+      stdout: 'Run ID: local-run\n',
+      stderr: ''
+    })
+
+    await index.runAgent({ skipInstall: true })
+
+    const callArgs = execMocks.getExecOutput.mock.calls[0][1] as string[]
+    expect(callArgs.filter((arg) => arg === '--debug')).toHaveLength(1)
   })
 })
 

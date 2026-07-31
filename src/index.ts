@@ -111,6 +111,7 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
 
   const cloud = core.getBooleanInput('cloud')
   const computerUse = core.getBooleanInput('computer_use')
+  const debug = core.getBooleanInput('debug')
   const args = ['agent', cloud ? 'run-cloud' : 'run']
   const host = core.getInput('host')
   if (host) {
@@ -215,8 +216,10 @@ export async function runAgent(options: RunAgentOptions = {}): Promise<void> {
     }
   }
 
-  // In debug mode, show Oz logs on stderr.
-  if (core.isDebug()) {
+  // Enable Oz debug logging when the explicit `debug` input is set, or when GitHub
+  // requests step-debug logging (e.g. re-run with step debug logging enabled).
+  // In debug mode, Oz logs are shown on stderr.
+  if (debug || core.isDebug()) {
     args.push('--debug')
   }
 

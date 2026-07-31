@@ -91,6 +91,27 @@ with:
   warp_api_key: ${{ secrets.WARP_API_KEY }}
 ```
 
+## Debug Logging
+
+By default, the action enables Oz debug logging (`--debug`) only when GitHub requests it — for
+example, when you
+[re-run a job with step debug logging enabled](https://docs.github.com/en/actions/managing-workflow-runs/enabling-debug-logging).
+Set the `debug` input to `true` to always enable debug logging, regardless of whether step debug
+logging is on:
+
+```yaml
+- name: Run Oz with debug logging
+  uses: warpdotdev/oz-agent-action@v1
+  with:
+    prompt: Review the code changes on this branch
+    debug: true
+    warp_api_key: ${{ secrets.WARP_API_KEY }}
+```
+
+When `debug: true`, Oz logs are emitted on stderr even if the workflow run was not started with step
+debug logging. When `debug` is `false` (the default), the existing behavior is preserved: debug
+logging activates only when GitHub's step-debug signal is on.
+
 ## Helpful Tips
 
 - Inject relevant context from the GitHub event and previous steps into your Oz prompt via
