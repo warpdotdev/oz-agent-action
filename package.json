@@ -64,6 +64,7 @@
       "minimatch": "9.0.9"
     },
     "undici": ">=8.9.0",
-    "brace-expansion": ">=1.1.16"
+    "brace-expansion": ">=1.1.16",
+    "js-yaml": "4.3.2"
   }
 }
