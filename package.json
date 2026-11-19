@@ -52,8 +52,8 @@
     "rollup": "^4.61.0",
     "tslib": "^2.8.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.47.0",
-    "vitest": "^4.1.11",
+    "typescript-eslint": "^8.73.0",
+    "vitest": "^4.1.12",
     "yaml": "^2.8.1"
   },
   "optionalDependencies": {
@@ -61,9 +61,9 @@
   },
   "overrides": {
     "@typescript-eslint/typescript-estree": {
-      "minimatch": "9.0.9"
+      "minimatch": "11.0.9"
     },
-    "undici": ">=8.9.0",
+    "undici": ">=8.12.2",
     "brace-expansion": ">=1.1.16",
     "js-yaml": "4.3.2",
     "vite": "8.2.4"
